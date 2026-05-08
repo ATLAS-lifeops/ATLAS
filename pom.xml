@@ -13,7 +13,7 @@
 
     <groupId>com.example</groupId>
     <artifactId>atlas</artifactId>
-    <version>0.2.0</version>
+    <version>0.3.0</version>
     <name>ATLAS</name>
     <description>Personal AI system for rhythm, training, recovery, habits, nutrition and progress.</description>
 

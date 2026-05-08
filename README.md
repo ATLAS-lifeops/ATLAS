@@ -161,20 +161,49 @@ Health endpoint доступен по адресу:
 http://localhost:8080/actuator/health
 ```
 
+## Landing page
+
+Public landing page frontend lives in `/frontend`.
+
+It is a standalone React + TypeScript + Vite app styled with Tailwind CSS. The implementation follows the ATLAS Figma landing frame and keeps frontend concerns separate from the Spring Boot backend.
+
+Install dependencies and run locally:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Build and lint:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
+
+Figma reference:
+
+```text
+https://www.figma.com/design/fjgO9PSSq0Hr73t6WxXEYA/ATLAS?node-id=0-1&p=f&t=JYdlwQHRwHdJBdUy-0
+```
+
+Design implementation notes live in `/design/README.md`. Frontend source files live in `/frontend/src`.
+
 <h2 align="center">Статус проекта</h2>
 
 Проект находится на ранней стадии разработки.
 
-Текущий фокус версии `v0.2.0`:
+Текущий фокус версии `v0.3.0`:
 
 ```text
-1. Локальная Docker-инфраструктура
-2. Docker Compose для приложения и PostgreSQL
-3. Environment-based configuration
-4. Telegram integration toggle
-5. Actuator health endpoint
-6. README с Docker workflow
-7. Базовый CI workflow
+1. Public landing page frontend
+2. Figma-based premium dark ATLAS design
+3. Responsive hero, agent system, workflow, dashboard preview, and footer
+4. Frontend lint/build workflow
+5. README, changelog, and design documentation
+6. CI checks for backend and frontend
 ```
 
 <h2 align="center">Принцип маршрутизации</h2>
@@ -218,10 +247,11 @@ ATLAS не является врачом, диетологом или медиц
 ```text
 v0.1.0 — skeleton, agents, orchestrator, migrations, README
 v0.2.0 — local Docker infrastructure, env config, healthcheck, CI
-v0.3.0 — real Telegram bot adapter
-v0.4.0 — persistence for messages, profiles, check-ins
-v0.5.0 — LLM client abstraction + mock/provider implementation
-v0.6.0 — real daily planning and workout flow
+v0.3.0 — public landing page frontend
+v0.4.0 — real Telegram bot adapter
+v0.5.0 — persistence for messages, profiles, check-ins
+v0.6.0 — LLM client abstraction + mock/provider implementation
+v0.7.0 — real daily planning and workout flow
 ```
 
 <h2 align="center">Цель</h2>
