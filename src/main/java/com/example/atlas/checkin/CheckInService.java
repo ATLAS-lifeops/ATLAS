@@ -1,10 +1,12 @@
 package com.example.atlas.checkin;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 
 @Service
+@ConditionalOnBean(CheckInRepository.class)
 public class CheckInService {
 
     private final CheckInRepository repository;

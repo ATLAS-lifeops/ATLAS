@@ -1,0 +1,16 @@
+.git
+.idea
+.vscode
+
+target
+
+*.log
+logs
+
+.env
+.env.local
+.env.*.local
+
+.DS_Store
+*.tmp
+*.swp

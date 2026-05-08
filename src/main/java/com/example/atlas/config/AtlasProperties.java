@@ -7,11 +7,12 @@ public record AtlasProperties(Telegram telegram) {
 
     public AtlasProperties {
         if (telegram == null) {
-            telegram = new Telegram("", "");
+            telegram = new Telegram(false, "", "");
         }
     }
 
     public record Telegram(
+            boolean enabled,
             String botToken,
             String botUsername
     ) {

@@ -90,20 +90,91 @@ flowchart TD
 На старте проект не привязан к конкретному LLM-провайдеру.  
 Интеграция с AI должна быть реализована через интерфейс, чтобы в будущем можно было подключить OpenAI, Spring AI, LangChain4j или другой провайдер.
 
+## Local Startup
+
+ATLAS можно запустить двумя способами:
+
+- native Maven run для разработки Java-приложения;
+- Docker Compose run для локальной инфраструктуры с PostgreSQL.
+
+Native run требует доступный PostgreSQL и переменные окружения для datasource:
+
+```bash
+mvn spring-boot:run
+```
+
+Telegram-интеграция по умолчанию выключена через `ATLAS_TELEGRAM_ENABLED=false`, поэтому локальный инфраструктурный запуск не требует реального Telegram token.
+
+## Docker
+
+Requirements:
+
+- Docker
+- Docker Compose
+- Java 21 и Maven для локальных тестов без контейнеров
+
+Подготовить локальные переменные окружения:
+
+```bash
+cp .env.example .env
+```
+
+Запустить PostgreSQL и приложение:
+
+```bash
+docker compose up --build
+```
+
+Остановить сервисы:
+
+```bash
+docker compose down
+```
+
+Смотреть логи приложения:
+
+```bash
+docker compose logs -f atlas-app
+```
+
+Пересобрать приложение:
+
+```bash
+docker compose up --build atlas-app
+```
+
+Удалить контейнеры и локальный PostgreSQL volume:
+
+```bash
+docker compose down -v
+```
+
+Запустить тесты локально:
+
+```bash
+mvn test
+```
+
+Health endpoint доступен по адресу:
+
+```text
+http://localhost:8080/actuator/health
+```
+
 <h2 align="center">Статус проекта</h2>
 
 Проект находится на ранней стадии разработки.
 
-Текущий фокус версии `v0.1.0`:
+Текущий фокус версии `v0.2.0`:
 
 ```text
-1. Базовый Spring Boot skeleton
-2. Пакетная структура для агентов
-3. ATLAS Core / Orchestrator
-4. Telegram adapter skeleton
-5. Flyway migration baseline
-6. README с архитектурной схемой
-7. Базовые тесты маршрутизации
+1. Локальная Docker-инфраструктура
+2. Docker Compose для приложения и PostgreSQL
+3. Environment-based configuration
+4. Telegram integration toggle
+5. Actuator health endpoint
+6. README с Docker workflow
+7. Базовый CI workflow
 ```
 
 <h2 align="center">Принцип маршрутизации</h2>
@@ -146,10 +217,11 @@ ATLAS не является врачом, диетологом или медиц
 
 ```text
 v0.1.0 — skeleton, agents, orchestrator, migrations, README
-v0.2.0 — real Telegram bot adapter
-v0.3.0 — persistence for messages, profiles, check-ins
-v0.4.0 — LLM client abstraction + mock/provider implementation
-v0.5.0 — real daily planning and workout flow
+v0.2.0 — local Docker infrastructure, env config, healthcheck, CI
+v0.3.0 — real Telegram bot adapter
+v0.4.0 — persistence for messages, profiles, check-ins
+v0.5.0 — LLM client abstraction + mock/provider implementation
+v0.6.0 — real daily planning and workout flow
 ```
 
 <h2 align="center">Цель</h2>

@@ -1,9 +1,11 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
+@ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
 public class TelegramBotAdapter {
 
     private final AtlasProperties properties;
