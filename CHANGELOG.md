@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.1
+
+- Stabilized Telegram integration startup behavior
+- Added configuration validation for enabled Telegram mode
+- Added safe handling for unsupported Telegram updates
+- Added robust Telegram message sending behavior
+- Added long response splitting for Telegram replies
+- Expanded Telegram integration test coverage
+- Improved Telegram setup and troubleshooting documentation
+- Centralized static Telegram reply templates
+
 ## v0.3.0
 
 - Implemented ATLAS landing page from Figma frame
