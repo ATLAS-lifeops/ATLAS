@@ -16,5 +16,8 @@ public record AtlasProperties(Telegram telegram) {
             String botToken,
             String botUsername
     ) {
+        public boolean hasBotToken() {
+            return botToken != null && !botToken.isBlank();
+        }
     }
 }
