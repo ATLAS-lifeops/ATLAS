@@ -4,33 +4,33 @@
 
 <h1 align="center">ATLAS</h1>
 
-**ATLAS** is a backend-first Telegram system for rhythm, training, recovery, habits, nutrition and progress.
+**ATLAS** — backend-first Telegram-система для режима, тренировок, восстановления, привычек, питания и прогресса.
 
-The project is designed as a multi-agent Telegram assistant: the user talks to one bot, while the backend routes requests to specialized ATLAS agents.
+Проект задуман как мультиагентный Telegram-ассистент: пользователь общается с одним ботом, а backend маршрутизирует запросы к специализированным агентам ATLAS.
 
-Frontend, landing page and web dashboard work are outside the core roadmap of this repository and may evolve separately later.
+Фронтенд, лендинг и веб-кабинет не входят в основную дорожную карту этого репозитория и могут развиваться отдельно позже.
 
-## Core Scope
+<h2 align="center">Core Scope</h2>
 
-- Telegram-first backend product
-- Spring Boot application with PostgreSQL persistence
-- agent orchestration for personal life operations
-- safe Telegram command handling
-- future LLM provider abstraction
+- Telegram-first backend-продукт
+- Spring Boot приложение с хранением данных в PostgreSQL
+- оркестрация агентов для повседневных сценариев пользователя
+- безопасная обработка Telegram-команд
+- будущая абстракция LLM-провайдера
 
-## Agents
+<h2 align="center">Agents</h2>
 
-| Agent | Responsibility |
+| Агент | Ответственность |
 |---|---|
-| ATLAS Core | orchestration and routing |
-| ATLAS Coach | sport, workouts, training load |
-| ATLAS Planner | day and week planning |
-| ATLAS Recovery | sleep, fatigue, recovery |
-| ATLAS Habits | habits, discipline, rhythm |
-| ATLAS Fuel | nutrition support |
-| ATLAS Report | weekly analytics and progress |
+| ATLAS Core | оркестрация и маршрутизация |
+| ATLAS Coach | спорт, тренировки, нагрузка |
+| ATLAS Planner | планирование дня и недели |
+| ATLAS Recovery | сон, усталость, восстановление |
+| ATLAS Habits | привычки, дисциплина, ритм |
+| ATLAS Fuel | поддержка питания |
+| ATLAS Report | недельная аналитика и прогресс |
 
-## Commands
+<h2 align="center">Commands</h2>
 
 ```text
 /start
@@ -45,7 +45,7 @@ Frontend, landing page and web dashboard work are outside the core roadmap of th
 /emergency
 ```
 
-## Stack
+<h2 align="center">Stack</h2>
 
 - Java 21
 - Spring Boot
@@ -55,44 +55,44 @@ Frontend, landing page and web dashboard work are outside the core roadmap of th
 - JUnit 5
 - Telegram Bot API
 
-## Local Run
+<h2 align="center">Local Run</h2>
 
-Run tests:
+Запуск тестов:
 
 ```bash
 mvn test
 ```
 
-Run locally with Telegram disabled:
+Локальный запуск с выключенной Telegram-интеграцией:
 
 ```bash
 ATLAS_TELEGRAM_ENABLED=false mvn spring-boot:run
 ```
 
-Run with Docker Compose:
+Запуск через Docker Compose:
 
 ```bash
 cp .env.example .env
 docker compose up --build
 ```
 
-Health endpoint:
+Эндпоинт состояния:
 
 ```text
 http://localhost:8080/actuator/health
 ```
 
-Telegram webhook endpoint:
+Эндпоинт Telegram webhook:
 
 ```text
 POST /telegram/webhook
 ```
 
-## Configuration
+<h2 align="center">Configuration</h2>
 
-Telegram integration is disabled by default for local development.
+Telegram-интеграция по умолчанию выключена для локальной разработки.
 
-Required variables for enabled Telegram mode:
+Переменные, необходимые для включённого Telegram-режима:
 
 ```bash
 ATLAS_TELEGRAM_ENABLED=true
@@ -100,35 +100,35 @@ ATLAS_TELEGRAM_BOT_TOKEN=<token>
 ATLAS_TELEGRAM_BOT_USERNAME=<username>
 ```
 
-Do not commit real credentials.
+Не добавляй реальные секреты в репозиторий.
 
-## Roadmap
+<h2 align="center">Roadmap</h2>
 
-Core product roadmap:
-
-```text
-v0.3.0 — real Telegram adapter
-v0.3.1 — Telegram stabilization
-v0.4.0 — persistence for users, messages, check-ins
-v0.5.0 — onboarding + conversational flows
-v0.6.0 — LLM abstraction
-v0.6.1 — first real LLM provider integration
-```
-
-Maintenance:
+Основная продуктовая дорожная карта:
 
 ```text
-v0.3.2 — backend-only repository cleanup and documentation alignment
+v0.3.0 — реальный Telegram-адаптер
+v0.3.1 — стабилизация Telegram-интеграции
+v0.4.0 — хранение данных пользователей, сообщений и чек-инов
+v0.5.0 — онбординг и диалоговые сценарии
+v0.6.0 — LLM-абстракция
+v0.6.1 — первая интеграция реального LLM-провайдера
 ```
 
-## Safety
+Служебные релизы:
 
-ATLAS is not a doctor, dietitian or medical professional. It should not diagnose, prescribe treatment, recommend training through pain, promote extreme diets or ignore serious symptoms.
+```text
+v0.3.2 — очистка backend-only репозитория и выравнивание документации
+```
 
-## Docs
+<h2 align="center">Safety</h2>
 
-- [Backend scope](docs/architecture/backend-scope.md)
+ATLAS не является врачом, диетологом или медицинским специалистом. Система не должна ставить диагнозы, назначать лечение, рекомендовать тренироваться через боль, продвигать экстремальные диеты или игнорировать серьёзные симптомы.
 
-## License
+<h2 align="center">Docs</h2>
 
-License will be defined later.
+- [Границы backend-части](docs/architecture/backend-scope.md)
+
+<h2 align="center">License</h2>
+
+Лицензия будет определена позже.
