@@ -105,6 +105,58 @@ mvn spring-boot:run
 
 Telegram-интеграция по умолчанию выключена через `ATLAS_TELEGRAM_ENABLED=false`, поэтому локальный инфраструктурный запуск не требует реального Telegram token.
 
+## Telegram setup
+
+Создай бота через BotFather в Telegram и сохрани token только локально, например в `.env`.
+
+Required environment variables:
+
+```bash
+ATLAS_TELEGRAM_ENABLED=true
+ATLAS_TELEGRAM_BOT_TOKEN=<token>
+ATLAS_TELEGRAM_BOT_USERNAME=<username>
+```
+
+Run with Telegram disabled:
+
+```bash
+ATLAS_TELEGRAM_ENABLED=false mvn spring-boot:run
+```
+
+Run with Telegram enabled:
+
+```bash
+ATLAS_TELEGRAM_ENABLED=true \
+ATLAS_TELEGRAM_BOT_TOKEN=<token> \
+ATLAS_TELEGRAM_BOT_USERNAME=<username> \
+mvn spring-boot:run
+```
+
+Docker Compose uses the same variables from `.env`:
+
+```bash
+ATLAS_TELEGRAM_ENABLED=true
+ATLAS_TELEGRAM_BOT_TOKEN=<token>
+ATLAS_TELEGRAM_BOT_USERNAME=<username>
+```
+
+The application exposes a Telegram webhook receiver at:
+
+```text
+POST /telegram/webhook
+```
+
+Do not commit real Telegram credentials. Local development can run with Telegram disabled.
+
+## Telegram troubleshooting
+
+- Application starts without token only when `ATLAS_TELEGRAM_ENABLED=false`.
+- If `ATLAS_TELEGRAM_ENABLED=true`, `ATLAS_TELEGRAM_BOT_TOKEN` is required.
+- Missing token in enabled mode fails startup with a clear configuration error.
+- Unsupported updates, non-text messages, edited messages and callback queries are ignored safely.
+- Long replies are split before sending to Telegram.
+- Do not commit `.env` with real credentials.
+
 ## Docker
 
 Requirements:
@@ -195,15 +247,15 @@ Design implementation notes live in `/design/README.md`. Frontend source files l
 
 Проект находится на ранней стадии разработки.
 
-Текущий фокус версии `v0.3.0`:
+Текущий фокус версии `v0.3.1`:
 
 ```text
-1. Public landing page frontend
-2. Figma-based premium dark ATLAS design
-3. Responsive hero, agent system, workflow, dashboard preview, and footer
-4. Frontend lint/build workflow
-5. README, changelog, and design documentation
-6. CI checks for backend and frontend
+1. Telegram integration startup stabilization
+2. Telegram token validation when integration is enabled
+3. Safe handling for unsupported Telegram updates
+4. Robust Telegram sendMessage error handling
+5. Long Telegram reply splitting
+6. Expanded Telegram integration tests
 ```
 
 <h2 align="center">Принцип маршрутизации</h2>
@@ -247,9 +299,10 @@ ATLAS не является врачом, диетологом или медиц
 ```text
 v0.1.0 — skeleton, agents, orchestrator, migrations, README
 v0.2.0 — local Docker infrastructure, env config, healthcheck, CI
-v0.3.0 — public landing page frontend
-v0.4.0 — real Telegram bot adapter
-v0.5.0 — persistence for messages, profiles, check-ins
+v0.3.0 — Telegram integration baseline and public landing page frontend
+v0.3.1 — Telegram integration stabilization
+v0.4.0 — persistence for Telegram messages and profiles
+v0.5.0 — real check-in, recovery and planning workflows
 v0.6.0 — LLM client abstraction + mock/provider implementation
 v0.7.0 — real daily planning and workout flow
 ```
