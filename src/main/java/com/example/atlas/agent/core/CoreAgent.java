@@ -4,6 +4,7 @@ import com.example.atlas.agent.Agent;
 import com.example.atlas.agent.AgentContext;
 import com.example.atlas.agent.AgentResult;
 import com.example.atlas.orchestrator.RequestType;
+import com.example.atlas.telegram.TelegramReplyTemplates;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -22,8 +23,8 @@ public class CoreAgent implements Agent {
     @Override
     public AgentResult handle(AgentContext context) {
         String content = switch (context.requestType()) {
-            case START -> "ATLAS на связи. Начнём спокойно: пришли /checkin, чтобы я понял состояние, или /day для плана на день.";
-            case GENERAL -> "Я могу помочь с режимом, тренировкой, восстановлением, привычками и питанием. Быстрый старт: /checkin или /day.";
+            case START -> TelegramReplyTemplates.startWelcome();
+            case GENERAL -> TelegramReplyTemplates.generalFallback();
             default -> "Маршрут принят ATLAS Core.";
         };
 
