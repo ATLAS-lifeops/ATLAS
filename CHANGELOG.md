@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.3.2
+
+- Removed obsolete frontend-related artifacts from the backend repository
+- Removed stale frontend references from docs and CI
+- Clarified backend-only scope of the ATLAS repository
+- Reorganized repository documentation layout
+- Updated roadmap presentation and repository maintenance notes
+
 ## v0.3.1
 
 - Stabilized Telegram integration startup behavior
@@ -13,13 +21,11 @@
 
 ## v0.3.0
 
-- Implemented ATLAS landing page from Figma frame
-- Added frontend application structure
-- Added responsive hero, agent system, workflow, dashboard preview, and footer sections
-- Added ATLAS logo component or integrated provided logo asset
-- Added frontend build and lint workflow
-- Updated README with landing page development instructions
-- Added design documentation
+- Added initial Telegram integration baseline
+- Added Telegram webhook receiver foundation
+- Added ATLAS command routing through the backend orchestrator
+- Added static Telegram reply templates
+- Updated README with Telegram bot workflow documentation
 
 ## v0.2.0
 

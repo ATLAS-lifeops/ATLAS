@@ -8,6 +8,8 @@
 
 Проект задуман как мультиагентный Telegram-бот: пользователь общается с одним ботом, а внутри системы запросы обрабатывает команда специализированных AI-агентов.
 
+На текущем этапе ATLAS развивается как backend-first Telegram-система. Отдельный фронтенд, лендинг или веб-кабинет не входят в основной roadmap этого репозитория и могут развиваться независимо позже.
+
 <h2 align="center">Идея</h2>
 
 ATLAS помогает держать жизнь в ритме:
@@ -213,49 +215,18 @@ Health endpoint доступен по адресу:
 http://localhost:8080/actuator/health
 ```
 
-## Landing page
-
-Public landing page frontend lives in `/frontend`.
-
-It is a standalone React + TypeScript + Vite app styled with Tailwind CSS. The implementation follows the ATLAS Figma landing frame and keeps frontend concerns separate from the Spring Boot backend.
-
-Install dependencies and run locally:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Build and lint:
-
-```bash
-cd frontend
-npm run lint
-npm run build
-```
-
-Figma reference:
-
-```text
-https://www.figma.com/design/fjgO9PSSq0Hr73t6WxXEYA/ATLAS?node-id=0-1&p=f&t=JYdlwQHRwHdJBdUy-0
-```
-
-Design implementation notes live in `/design/README.md`. Frontend source files live in `/frontend/src`.
-
 <h2 align="center">Статус проекта</h2>
 
 Проект находится на ранней стадии разработки.
 
-Текущий фокус версии `v0.3.1`:
+Текущий фокус репозитория:
 
 ```text
-1. Telegram integration startup stabilization
-2. Telegram token validation when integration is enabled
-3. Safe handling for unsupported Telegram updates
-4. Robust Telegram sendMessage error handling
-5. Long Telegram reply splitting
-6. Expanded Telegram integration tests
+1. Backend architecture for Telegram-first workflows
+2. Telegram adapter and stabilization
+3. Persistence for users, messages and check-ins
+4. Onboarding and conversational flows
+5. LLM provider abstraction
 ```
 
 <h2 align="center">Принцип маршрутизации</h2>
@@ -299,12 +270,17 @@ ATLAS не является врачом, диетологом или медиц
 ```text
 v0.1.0 — skeleton, agents, orchestrator, migrations, README
 v0.2.0 — local Docker infrastructure, env config, healthcheck, CI
-v0.3.0 — Telegram integration baseline and public landing page frontend
-v0.3.1 — Telegram integration stabilization
-v0.4.0 — persistence for Telegram messages and profiles
-v0.5.0 — real check-in, recovery and planning workflows
-v0.6.0 — LLM client abstraction + mock/provider implementation
-v0.7.0 — real daily planning and workout flow
+v0.3.0 — real Telegram adapter
+v0.3.1 — Telegram stabilization
+v0.4.0 — persistence for users, messages, check-ins
+v0.5.0 — onboarding + conversational flows
+v0.6.0 — LLM abstraction
+```
+
+Maintenance:
+
+```text
+v0.3.2 — backend-only repository cleanup and documentation alignment
 ```
 
 <h2 align="center">Цель</h2>
