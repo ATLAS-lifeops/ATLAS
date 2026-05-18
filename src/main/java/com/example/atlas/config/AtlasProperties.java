@@ -1,13 +1,22 @@
 package com.example.atlas.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @ConfigurationProperties(prefix = "atlas")
-public record AtlasProperties(Telegram telegram) {
+public record AtlasProperties(Telegram telegram, Setup setup) {
 
+    public AtlasProperties(Telegram telegram) {
+        this(telegram, null);
+    }
+
+    @ConstructorBinding
     public AtlasProperties {
         if (telegram == null) {
             telegram = new Telegram(false, "", "", "/telegram/webhook", "", "", false, true);
+        }
+        if (setup == null) {
+            setup = new Setup(true);
         }
     }
 
@@ -48,5 +57,8 @@ public record AtlasProperties(Telegram telegram) {
         private static String defaultString(String value, String fallback) {
             return value == null ? fallback : value;
         }
+    }
+
+    public record Setup(boolean enabled) {
     }
 }

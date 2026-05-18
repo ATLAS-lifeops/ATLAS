@@ -23,6 +23,8 @@ management:
         enabled: true
 
 atlas:
+  setup:
+    enabled: ${ATLAS_SETUP_ENABLED:true}
   telegram:
     enabled: ${ATLAS_TELEGRAM_ENABLED:false}
     bot-token: ${ATLAS_TELEGRAM_BOT_TOKEN:}
