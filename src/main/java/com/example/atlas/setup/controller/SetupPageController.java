@@ -2,21 +2,35 @@ package com.example.atlas.setup.controller;
 
 import com.example.atlas.runtime.service.AtlasRuntimeSettingsService;
 import com.example.atlas.runtime.service.RuntimeSettingsStatus;
+import com.example.atlas.runtime.entity.TelegramLaunchMode;
+import com.example.atlas.runtime.service.RuntimeSettingsValidationException;
+import com.example.atlas.setup.dto.SetupSubmissionRequest;
+import com.example.atlas.setup.service.TelegramBotIdentity;
+import com.example.atlas.setup.service.TelegramBotTokenValidationException;
+import com.example.atlas.setup.service.TelegramBotTokenValidator;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
 @ConditionalOnBean(AtlasRuntimeSettingsService.class)
 public class SetupPageController {
 
     private final AtlasRuntimeSettingsService runtimeSettingsService;
+    private final TelegramBotTokenValidator tokenValidator;
 
-    public SetupPageController(AtlasRuntimeSettingsService runtimeSettingsService) {
+    public SetupPageController(
+            AtlasRuntimeSettingsService runtimeSettingsService,
+            TelegramBotTokenValidator tokenValidator
+    ) {
         this.runtimeSettingsService = runtimeSettingsService;
+        this.tokenValidator = tokenValidator;
     }
 
     @GetMapping("/")
@@ -30,6 +44,33 @@ public class SetupPageController {
     @GetMapping("/setup")
     public ResponseEntity<String> setup() {
         return html(setupPage(null, runtimeSettingsService.status()));
+    }
+
+    @PostMapping("/setup")
+    public ResponseEntity<String> submitSetup(@ModelAttribute SetupSubmissionRequest request) {
+        try {
+            TelegramLaunchMode mode = TelegramLaunchMode.valueOf(request.mode());
+            TelegramBotIdentity identity = tokenValidator.validate(request.botToken());
+            String botUsername = firstNonBlank(request.botUsername(), identity.username());
+            runtimeSettingsService.saveTelegramSetup(
+                    request.botToken(),
+                    botUsername,
+                    mode,
+                    request.publicBaseUrl(),
+                    request.webhookSecret()
+            );
+            return html(successPage(runtimeSettingsService.status()));
+        } catch (IllegalArgumentException exception) {
+            return html(setupPage("Launch mode must be Simple local launch or Production webhook.", runtimeSettingsService.status()));
+        } catch (RuntimeSettingsValidationException | TelegramBotTokenValidationException exception) {
+            return html(setupPage(exception.getMessage(), runtimeSettingsService.status()));
+        }
+    }
+
+    @GetMapping("/setup/status")
+    @ResponseBody
+    public RuntimeSettingsStatus setupStatus() {
+        return runtimeSettingsService.status();
     }
 
     public static ResponseEntity<String> html(String body) {
@@ -115,6 +156,58 @@ public class SetupPageController {
                 </body>
                 </html>
                 """.formatted(completed, error);
+    }
+
+    public static String successPage(RuntimeSettingsStatus status) {
+        String mode = status.telegramMode() == null ? "Not configured" : status.telegramMode().name();
+        String username = status.botUsername() == null ? "Not configured" : escape(status.botUsername());
+        return """
+                <!doctype html>
+                <html lang="en">
+                <head>
+                  <meta charset="utf-8">
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <title>ATLAS Setup Saved</title>
+                  <style>
+                    body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
+                    main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+                    section { width: min(100%, 520px); background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 28px; box-shadow: 0 8px 28px rgba(23,32,42,.08); }
+                    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: 0; }
+                    p { color: #536471; line-height: 1.5; }
+                    dl { display: grid; grid-template-columns: 150px 1fr; gap: 10px; }
+                    dt { font-weight: 700; }
+                    a { color: #1565c0; }
+                  </style>
+                </head>
+                <body>
+                  <main>
+                    <section>
+                      <h1>Setup saved</h1>
+                      <p>ATLAS saved the Telegram setup. Open Telegram and send <strong>/start</strong> to your bot.</p>
+                      <dl>
+                        <dt>Mode</dt><dd>%s</dd>
+                        <dt>Bot username</dt><dd>%s</dd>
+                        <dt>Token</dt><dd>%s</dd>
+                        <dt>Webhook</dt><dd>%s</dd>
+                      </dl>
+                      <p><a href="/setup">Edit setup</a></p>
+                    </section>
+                  </main>
+                </body>
+                </html>
+                """.formatted(
+                escape(mode),
+                username,
+                status.tokenConfigured() ? "Configured" : "Not configured",
+                status.webhookConfigured() ? "Configured" : "Not configured"
+        );
+    }
+
+    private static String firstNonBlank(String first, String second) {
+        if (first != null && !first.isBlank()) {
+            return first.strip();
+        }
+        return second == null || second.isBlank() ? null : second.strip();
     }
 
     private static String escape(String value) {
