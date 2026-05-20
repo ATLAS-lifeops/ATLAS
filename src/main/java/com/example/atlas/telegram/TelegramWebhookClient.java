@@ -1,12 +1,14 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
+import com.example.atlas.runtime.service.AtlasRuntimeSettingsService;
+import com.example.atlas.runtime.service.EffectiveTelegramConfig;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -14,28 +16,43 @@ import org.springframework.web.client.RestClientException;
 import java.util.List;
 
 @Component
-@ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
 public class TelegramWebhookClient {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramWebhookClient.class);
 
+    private final AtlasProperties properties;
+    private final ObjectProvider<AtlasRuntimeSettingsService> runtimeSettingsService;
+    private final RestClient.Builder restClientBuilder;
     private final RestClient restClient;
 
     @Autowired
-    public TelegramWebhookClient(AtlasProperties properties, RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder
-                .baseUrl("https://api.telegram.org/bot" + properties.telegram().botToken())
-                .build();
+    public TelegramWebhookClient(
+            AtlasProperties properties,
+            ObjectProvider<AtlasRuntimeSettingsService> runtimeSettingsService,
+            RestClient.Builder restClientBuilder
+    ) {
+        this.properties = properties;
+        this.runtimeSettingsService = runtimeSettingsService;
+        this.restClientBuilder = restClientBuilder;
+        this.restClient = null;
     }
 
     TelegramWebhookClient(RestClient restClient) {
+        this.properties = null;
+        this.runtimeSettingsService = null;
+        this.restClientBuilder = null;
         this.restClient = restClient;
     }
 
     public void setWebhook(TelegramWebhookRequest request) {
+        setWebhook(effectiveBotToken(), request);
+    }
+
+    public void setWebhook(String botToken, TelegramWebhookRequest request) {
         TelegramWebhookApiResponse response;
         try {
-            response = restClient.post()
+            response = restClient(botToken)
+                    .post()
                     .uri("/setWebhook")
                     .body(TelegramWebhookPayload.from(request))
                     .retrieve()
@@ -51,6 +68,32 @@ public class TelegramWebhookClient {
         }
 
         log.info("Telegram setWebhook accepted by Telegram API");
+    }
+
+    private RestClient restClient(String botToken) {
+        if (restClient != null) {
+            return restClient;
+        }
+        if (botToken == null || botToken.isBlank()) {
+            throw new IllegalStateException("Telegram bot token is not configured.");
+        }
+        return restClientBuilder.clone()
+                .baseUrl("https://api.telegram.org/bot" + botToken.strip())
+                .build();
+    }
+
+    private String effectiveBotToken() {
+        AtlasRuntimeSettingsService service = runtimeSettingsService == null ? null : runtimeSettingsService.getIfAvailable();
+        if (service != null) {
+            EffectiveTelegramConfig config = service.effectiveTelegramConfig();
+            if (config.hasBotToken()) {
+                return config.botToken();
+            }
+        }
+        if (properties == null) {
+            return "";
+        }
+        return properties.telegram().botToken();
     }
 
     public record TelegramWebhookRequest(

@@ -2,14 +2,12 @@ package com.example.atlas.telegram;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
-@ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
 public class TelegramMessageSender {
 
     static final int MAX_TEXT_CHUNK_SIZE = 3900;

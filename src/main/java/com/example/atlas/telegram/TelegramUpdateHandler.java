@@ -5,11 +5,9 @@ import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.safety.SafetyGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
 public class TelegramUpdateHandler {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramUpdateHandler.class);

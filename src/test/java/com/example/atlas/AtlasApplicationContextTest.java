@@ -3,7 +3,6 @@ package com.example.atlas;
 import com.example.atlas.telegram.TelegramBotAdapter;
 import com.example.atlas.telegram.TelegramMessageSender;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -27,10 +26,8 @@ class AtlasApplicationContextTest {
         ));
 
         try (ConfigurableApplicationContext context = application.run()) {
-            assertThatThrownBy(() -> context.getBean(TelegramBotAdapter.class))
-                    .isInstanceOf(NoSuchBeanDefinitionException.class);
-            assertThatThrownBy(() -> context.getBean(TelegramMessageSender.class))
-                    .isInstanceOf(NoSuchBeanDefinitionException.class);
+            assertThat(context.getBean(TelegramBotAdapter.class)).isNotNull();
+            assertThat(context.getBean(TelegramMessageSender.class)).isNotNull();
         }
     }
 
@@ -50,14 +47,29 @@ class AtlasApplicationContextTest {
     }
 
     @Test
-    void contextFailsWhenTelegramEnabledWithoutToken() {
+    void contextLoadsWhenTelegramEnabledWithoutTokenAndSetupEnabled() {
+        SpringApplication application = new SpringApplication(AtlasApplication.class);
+        application.setDefaultProperties(baseTestProperties());
+
+        try (ConfigurableApplicationContext context = application.run(
+                "--atlas.telegram.enabled=true",
+                "--atlas.telegram.bot-token=",
+                "--atlas.telegram.bot-username=atlas_test_bot"
+        )) {
+            assertThat(context.getBean(TelegramBotAdapter.class)).isNotNull();
+        }
+    }
+
+    @Test
+    void contextFailsWhenTelegramEnabledWithoutTokenAndSetupDisabled() {
         SpringApplication application = new SpringApplication(AtlasApplication.class);
         application.setDefaultProperties(baseTestProperties());
 
         assertThatThrownBy(() -> application.run(
                 "--atlas.telegram.enabled=true",
                 "--atlas.telegram.bot-token=",
-                "--atlas.telegram.bot-username=atlas_test_bot"
+                "--atlas.telegram.bot-username=atlas_test_bot",
+                "--atlas.setup.enabled=false"
         ))
                 .hasStackTraceContaining("ATLAS Telegram integration is enabled")
                 .hasStackTraceContaining("ATLAS_TELEGRAM_BOT_TOKEN");

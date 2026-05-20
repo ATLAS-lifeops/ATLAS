@@ -1,27 +1,38 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import com.example.atlas.runtime.service.AtlasRuntimeSettingsService;
+import com.example.atlas.runtime.service.EffectiveTelegramConfig;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
+import java.util.List;
 import java.util.Map;
 
 @Component
-@ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
 public class TelegramBotApiClient implements TelegramApiClient {
 
-    private final RestClient restClient;
+    private final AtlasProperties properties;
+    private final ObjectProvider<AtlasRuntimeSettingsService> runtimeSettingsService;
+    private final RestClient.Builder restClientBuilder;
 
-    public TelegramBotApiClient(AtlasProperties properties, RestClient.Builder restClientBuilder) {
-        this.restClient = restClientBuilder
-                .baseUrl("https://api.telegram.org/bot" + properties.telegram().botToken())
-                .build();
+    public TelegramBotApiClient(
+            AtlasProperties properties,
+            ObjectProvider<AtlasRuntimeSettingsService> runtimeSettingsService,
+            RestClient.Builder restClientBuilder
+    ) {
+        this.properties = properties;
+        this.runtimeSettingsService = runtimeSettingsService;
+        this.restClientBuilder = restClientBuilder;
     }
 
     @Override
     public void sendMessage(long chatId, String text) {
-        restClient.post()
+        restClient()
+                .post()
                 .uri("/sendMessage")
                 .body(Map.of(
                         "chat_id", chatId,
@@ -29,5 +40,75 @@ public class TelegramBotApiClient implements TelegramApiClient {
                 ))
                 .retrieve()
                 .toBodilessEntity();
+    }
+
+    @Override
+    public List<TelegramUpdate> getUpdates(long offset, int timeoutSeconds) {
+        TelegramGetUpdatesResponse response = restClient()
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/getUpdates")
+                        .queryParam("offset", Math.max(offset, 0))
+                        .queryParam("timeout", Math.max(timeoutSeconds, 0))
+                        .queryParam("allowed_updates", "[\"message\"]")
+                        .build())
+                .retrieve()
+                .body(TelegramGetUpdatesResponse.class);
+
+        if (response == null || !response.ok()) {
+            throw new TelegramApiException("Telegram getUpdates was rejected by Telegram API.");
+        }
+        return response.result() == null ? List.of() : response.result();
+    }
+
+    @Override
+    public void deleteWebhook(boolean dropPendingUpdates) {
+        TelegramApiResponse response = restClient()
+                .post()
+                .uri("/deleteWebhook")
+                .body(Map.of("drop_pending_updates", dropPendingUpdates))
+                .retrieve()
+                .body(TelegramApiResponse.class);
+
+        if (response == null || !response.ok()) {
+            throw new TelegramApiException("Telegram deleteWebhook was rejected by Telegram API.");
+        }
+    }
+
+    private RestClient restClient() {
+        return restClientForToken(effectiveBotToken());
+    }
+
+    RestClient restClientForToken(String botToken) {
+        if (botToken == null || botToken.isBlank()) {
+            throw new TelegramApiException("Telegram bot token is not configured.");
+        }
+        try {
+            return restClientBuilder.clone()
+                    .baseUrl("https://api.telegram.org/bot" + botToken.strip())
+                    .build();
+        } catch (RestClientException exception) {
+            throw new TelegramApiException("Telegram API client could not be created.", exception);
+        }
+    }
+
+    private String effectiveBotToken() {
+        AtlasRuntimeSettingsService service = runtimeSettingsService.getIfAvailable();
+        if (service != null) {
+            EffectiveTelegramConfig config = service.effectiveTelegramConfig();
+            if (config.hasBotToken()) {
+                return config.botToken();
+            }
+        }
+        return properties.telegram().botToken();
+    }
+
+    private record TelegramApiResponse(boolean ok) {
+    }
+
+    private record TelegramGetUpdatesResponse(
+            boolean ok,
+            @JsonProperty("result") List<TelegramUpdate> result
+    ) {
     }
 }
