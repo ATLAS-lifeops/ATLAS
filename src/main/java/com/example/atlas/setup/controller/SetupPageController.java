@@ -8,6 +8,8 @@ import com.example.atlas.setup.dto.SetupSubmissionRequest;
 import com.example.atlas.setup.service.TelegramBotIdentity;
 import com.example.atlas.setup.service.TelegramBotTokenValidationException;
 import com.example.atlas.setup.service.TelegramBotTokenValidator;
+import com.example.atlas.telegram.TelegramWebhookRegistrationService;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -24,13 +26,16 @@ public class SetupPageController {
 
     private final AtlasRuntimeSettingsService runtimeSettingsService;
     private final TelegramBotTokenValidator tokenValidator;
+    private final ObjectProvider<TelegramWebhookRegistrationService> webhookRegistrationService;
 
     public SetupPageController(
             AtlasRuntimeSettingsService runtimeSettingsService,
-            TelegramBotTokenValidator tokenValidator
+            TelegramBotTokenValidator tokenValidator,
+            ObjectProvider<TelegramWebhookRegistrationService> webhookRegistrationService
     ) {
         this.runtimeSettingsService = runtimeSettingsService;
         this.tokenValidator = tokenValidator;
+        this.webhookRegistrationService = webhookRegistrationService;
     }
 
     @GetMapping("/")
@@ -59,9 +64,17 @@ public class SetupPageController {
                     request.publicBaseUrl(),
                     request.webhookSecret()
             );
+            if (mode == TelegramLaunchMode.WEBHOOK) {
+                TelegramWebhookRegistrationService service = webhookRegistrationService.getIfAvailable();
+                if (service != null) {
+                    service.registerConfiguredWebhook();
+                }
+            }
             return html(successPage(runtimeSettingsService.status()));
         } catch (IllegalArgumentException exception) {
             return html(setupPage("Launch mode must be Simple local launch or Production webhook.", runtimeSettingsService.status()));
+        } catch (IllegalStateException exception) {
+            return html(setupPage(exception.getMessage(), runtimeSettingsService.status()));
         } catch (RuntimeSettingsValidationException | TelegramBotTokenValidationException exception) {
             return html(setupPage(exception.getMessage(), runtimeSettingsService.status()));
         }

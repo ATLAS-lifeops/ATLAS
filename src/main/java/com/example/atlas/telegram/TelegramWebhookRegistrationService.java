@@ -1,27 +1,43 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
+import com.example.atlas.runtime.entity.TelegramLaunchMode;
+import com.example.atlas.runtime.service.AtlasRuntimeSettingsService;
+import com.example.atlas.runtime.service.EffectiveTelegramConfig;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
 public class TelegramWebhookRegistrationService implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramWebhookRegistrationService.class);
 
     private final AtlasProperties properties;
+    private final ObjectProvider<AtlasRuntimeSettingsService> runtimeSettingsService;
     private final TelegramWebhookClient webhookClient;
 
+    @Autowired
     public TelegramWebhookRegistrationService(
+            AtlasProperties properties,
+            ObjectProvider<AtlasRuntimeSettingsService> runtimeSettingsService,
+            TelegramWebhookClient webhookClient
+    ) {
+        this.properties = properties;
+        this.runtimeSettingsService = runtimeSettingsService;
+        this.webhookClient = webhookClient;
+    }
+
+    TelegramWebhookRegistrationService(
             AtlasProperties properties,
             TelegramWebhookClient webhookClient
     ) {
         this.properties = properties;
+        this.runtimeSettingsService = null;
         this.webhookClient = webhookClient;
     }
 
@@ -31,60 +47,96 @@ public class TelegramWebhookRegistrationService implements ApplicationRunner {
     }
 
     void registerWebhookIfEnabled() {
-        AtlasProperties.Telegram telegram = properties.telegram();
-        if (!telegram.registerWebhookOnStartup()) {
+        EffectiveTelegramConfig config = effectiveTelegramConfig();
+        if (!config.registerWebhookOnStartup()) {
             log.info("Telegram webhook registration on startup is disabled");
             return;
         }
 
-        validateConfiguration(telegram);
+        registerWebhook(config);
+    }
 
-        String webhookUrl = buildWebhookUrl(telegram.publicBaseUrl(), telegram.webhookPath());
+    public void registerConfiguredWebhook() {
+        registerWebhook(effectiveTelegramConfig());
+    }
+
+    private void registerWebhook(EffectiveTelegramConfig config) {
+        if (!config.isWebhookMode()) {
+            log.info("Telegram webhook registration skipped because webhook mode is not configured");
+            return;
+        }
+
+        validateConfiguration(config);
+
+        String webhookUrl = buildWebhookUrl(config.publicBaseUrl(), config.webhookPath());
         webhookClient.setWebhook(new TelegramWebhookClient.TelegramWebhookRequest(
                 webhookUrl,
-                telegram.webhookSecret(),
-                telegram.dropPendingUpdatesOnWebhookRegistration()
+                config.webhookSecret(),
+                config.dropPendingUpdatesOnWebhookRegistration()
         ));
 
         log.info(
                 "Telegram webhook registered: url='{}', dropPendingUpdates={}",
                 webhookUrl,
-                telegram.dropPendingUpdatesOnWebhookRegistration()
+                config.dropPendingUpdatesOnWebhookRegistration()
         );
     }
 
-    private void validateConfiguration(AtlasProperties.Telegram telegram) {
-        if (!telegram.hasBotToken()) {
+    private void validateConfiguration(EffectiveTelegramConfig config) {
+        if (!config.hasBotToken()) {
             throw new IllegalStateException(
                     "Telegram webhook registration is enabled, but atlas.telegram.bot-token is missing. "
                             + "Set ATLAS_TELEGRAM_BOT_TOKEN."
             );
         }
 
-        if (!telegram.hasPublicBaseUrl()) {
+        if (!config.hasPublicBaseUrl()) {
             throw new IllegalStateException(
                     "Telegram webhook registration is enabled, but atlas.telegram.public-base-url is missing. "
                             + "Set ATLAS_PUBLIC_BASE_URL."
             );
         }
 
-        if (!telegram.publicBaseUrl().startsWith("https://")) {
+        if (!config.publicBaseUrl().startsWith("https://")) {
             throw new IllegalStateException(
                     "Telegram webhook registration requires atlas.telegram.public-base-url to start with https://."
             );
         }
 
-        if (telegram.webhookPath() == null || telegram.webhookPath().isBlank()) {
+        if (config.webhookPath() == null || config.webhookPath().isBlank()) {
             throw new IllegalStateException(
                     "Telegram webhook registration requires atlas.telegram.webhook-path to be configured."
             );
         }
 
-        if (!telegram.webhookPath().startsWith("/")) {
+        if (!config.webhookPath().startsWith("/")) {
             throw new IllegalStateException(
                     "Telegram webhook registration requires atlas.telegram.webhook-path to start with /."
             );
         }
+    }
+
+    private EffectiveTelegramConfig effectiveTelegramConfig() {
+        AtlasRuntimeSettingsService service = runtimeSettingsService == null ? null : runtimeSettingsService.getIfAvailable();
+        if (service != null) {
+            return service.effectiveTelegramConfig();
+        }
+
+        AtlasProperties.Telegram telegram = properties.telegram();
+        TelegramLaunchMode mode = telegram.registerWebhookOnStartup() ? TelegramLaunchMode.WEBHOOK : TelegramLaunchMode.POLLING;
+        return new EffectiveTelegramConfig(
+                telegram.enabled(),
+                telegram.enabled() && telegram.hasBotToken(),
+                telegram.botToken(),
+                telegram.botUsername(),
+                mode,
+                telegram.webhookPath(),
+                telegram.publicBaseUrl(),
+                telegram.webhookSecret(),
+                telegram.registerWebhookOnStartup(),
+                telegram.dropPendingUpdatesOnWebhookRegistration(),
+                0L
+        );
     }
 
     private String buildWebhookUrl(String publicBaseUrl, String webhookPath) {
