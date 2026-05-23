@@ -9,5 +9,10 @@ target/
 .vscode/
 *.iml
 
+logs/
 *.log
+*.pid
+*.pid.lock
+*.tmp
+*.swp
 .DS_Store

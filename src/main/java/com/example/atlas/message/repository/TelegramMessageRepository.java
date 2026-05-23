@@ -1,6 +1,7 @@
 package com.example.atlas.message.repository;
 
 import com.example.atlas.message.entity.TelegramMessageEntity;
+import com.example.atlas.message.entity.TelegramMessageDirection;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -13,4 +14,6 @@ public interface TelegramMessageRepository extends JpaRepository<TelegramMessage
     List<TelegramMessageEntity> findByTelegramUserOrderByCreatedAtDesc(TelegramUserEntity telegramUser);
 
     long countByTelegramUserAndCreatedAtAfter(TelegramUserEntity telegramUser, Instant createdAt);
+
+    long countByDirectionAndCreatedAtAfter(TelegramMessageDirection direction, Instant createdAt);
 }
