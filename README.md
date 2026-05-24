@@ -82,6 +82,12 @@ docker compose up --build
 http://localhost:8080/actuator/health
 ```
 
+Первичная настройка после локального запуска:
+
+```text
+http://localhost:8080/setup
+```
+
 Эндпоинт Telegram webhook:
 
 ```text
@@ -90,15 +96,31 @@ POST /telegram/webhook
 
 <h2 align="center">Configuration</h2>
 
-Telegram-интеграция по умолчанию выключена для локальной разработки.
+Telegram-интеграция по умолчанию выключена для локальной разработки. При `ATLAS_SETUP_ENABLED=true` приложение может стартовать без bot token и принять настройки через `/setup`.
 
-Переменные, необходимые для включённого Telegram-режима:
+Минимальные переменные для первого запуска с web setup:
+
+```bash
+ATLAS_SETUP_ENABLED=true
+ATLAS_TELEGRAM_ENABLED=false
+```
+
+Переменные для запуска только через окружение:
 
 ```bash
 ATLAS_TELEGRAM_ENABLED=true
 ATLAS_TELEGRAM_BOT_TOKEN=<token>
 ATLAS_TELEGRAM_BOT_USERNAME=<username>
 ```
+
+Режимы запуска Telegram:
+
+```text
+POLLING — простой локальный режим, приложение само читает getUpdates и удаляет активный webhook.
+WEBHOOK — production-режим, приложение принимает POST /telegram/webhook и проверяет secret token.
+```
+
+Данные v0.4.0 хранятся в PostgreSQL через Flyway: runtime settings, Telegram users, Telegram messages и check-ins. Команда `/report` использует сохранённые check-ins и сообщения, если они есть.
 
 Не добавляй реальные секреты в репозиторий.
 
@@ -156,6 +178,7 @@ ATLAS не является врачом, диетологом или медиц
 <h2 align="center">Docs</h2>
 
 - [Границы backend-части](docs/architecture/backend-scope.md)
+- [Production Telegram запуск](docs/deployment/telegram-production.md)
 
 <h2 align="center">License</h2>
 

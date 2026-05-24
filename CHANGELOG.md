@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.4.0
+
+- Added Flyway-backed persistence for Telegram users, messages, check-ins and runtime settings
+- Added first-run setup page and setup status endpoint
+- Added Telegram token validation through `getMe`
+- Added polling mode with persisted update offset and webhook removal
+- Added runtime webhook registration and webhook secret validation from saved settings
+- Persisted incoming/outgoing Telegram messages and `/checkin` activity
+- Integrated `/report` with saved check-ins and Telegram activity
+- Updated setup, deployment and repository cleanup documentation
+
 ## v0.3.3
 
 - Added production Telegram webhook configuration

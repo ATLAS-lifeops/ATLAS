@@ -13,6 +13,7 @@
 ## Required Environment Variables
 
 ```bash
+ATLAS_SETUP_ENABLED=true
 ATLAS_TELEGRAM_ENABLED=true
 ATLAS_TELEGRAM_BOT_TOKEN=<telegram-bot-token>
 ATLAS_TELEGRAM_BOT_USERNAME=<telegram-bot-username>
@@ -22,6 +23,8 @@ ATLAS_PUBLIC_BASE_URL=https://<public-domain>
 ATLAS_TELEGRAM_REGISTER_WEBHOOK_ON_STARTUP=false
 ATLAS_TELEGRAM_DROP_PENDING_UPDATES_ON_WEBHOOK_REGISTRATION=true
 ```
+
+If `ATLAS_SETUP_ENABLED=true`, the app can also start without `ATLAS_TELEGRAM_BOT_TOKEN`; open `/setup`, paste the token, choose `Production webhook`, and save. The setup flow validates the token through Telegram `getMe` and registers the webhook when webhook mode is selected.
 
 ## Example `.env.production`
 
@@ -34,6 +37,7 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://atlas-postgres:5432/atlas
 SPRING_DATASOURCE_USERNAME=atlas
 SPRING_DATASOURCE_PASSWORD=<postgres-password>
 
+ATLAS_SETUP_ENABLED=true
 ATLAS_TELEGRAM_ENABLED=true
 ATLAS_TELEGRAM_BOT_TOKEN=<telegram-bot-token>
 ATLAS_TELEGRAM_BOT_USERNAME=<telegram-bot-username>
@@ -71,7 +75,23 @@ curl -f http://localhost:8080/actuator/health
 
 ## Webhook Registration
 
-### Option 1: Automatic Registration On Startup
+### Option 1: Setup Page Registration
+
+Start the app with setup enabled:
+
+```bash
+ATLAS_SETUP_ENABLED=true
+```
+
+Open:
+
+```text
+https://<public-domain>/setup
+```
+
+Choose `Production webhook`, enter the bot token, public HTTPS base URL, and webhook secret, then save. ATLAS validates the bot token with `getMe`, stores runtime settings in PostgreSQL, and calls `setWebhook`.
+
+### Option 2: Automatic Registration On Startup
 
 Set:
 
@@ -89,7 +109,7 @@ https://<public-domain>/telegram/webhook
 
 Automatic registration fails fast if the public URL is missing, is not HTTPS, or the webhook path does not start with `/`.
 
-### Option 2: Manual `setWebhook`
+### Option 3: Manual `setWebhook`
 
 Keep automatic registration disabled:
 
@@ -113,15 +133,21 @@ Check webhook status:
 curl "https://api.telegram.org/bot${ATLAS_TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 ```
 
+## Polling Mode
+
+For local launch, choose `Simple local launch` on `/setup`. ATLAS stores the bot token, removes any existing webhook with `deleteWebhook`, then polls `getUpdates` on a guarded single loop. The polling offset is persisted in PostgreSQL so processed updates are not replayed after restart.
+
 ## Smoke Test
 
 - `GET /actuator/health` returns `UP`.
 - Application starts with `ATLAS_TELEGRAM_ENABLED=true` and a configured bot token.
-- Startup logs show Telegram integration enabled.
+- Startup logs show Telegram integration availability.
 - If automatic registration is enabled, startup logs show webhook registration success.
+- `/setup/status` shows setup completion and masked secrets.
 - Send `/start` to the bot in Telegram.
 - Bot replies in Telegram.
 - Send `/day` and verify a planner response.
+- Send `/checkin energy 7 fatigue 4 sleep 8 stress 3` and verify `/report` reflects saved activity.
 - Send an unsupported or blank update through the webhook and verify the backend does not crash.
 - Verify logs contain `update_id`, `chat_id`, `handled`, and `request_type` where available.
 - Verify logs do not contain bot token, webhook secret, or full user message text.
@@ -129,7 +155,7 @@ curl "https://api.telegram.org/bot${ATLAS_TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 ## Common Issues
 
 Bot does not answer:
-Check `ATLAS_TELEGRAM_ENABLED`, bot token, webhook URL, app logs, and `getWebhookInfo`.
+Check setup status, `ATLAS_TELEGRAM_ENABLED`, bot token, webhook URL, app logs, and `getWebhookInfo`.
 
 Health is down:
 Check datasource variables, PostgreSQL availability, migrations, container logs, and `/actuator/health`.
@@ -149,10 +175,13 @@ Check DNS, HTTPS certificate, reverse proxy routing, firewall rules, and public 
 Pending updates after deploy:
 Use `ATLAS_TELEGRAM_DROP_PENDING_UPDATES_ON_WEBHOOK_REGISTRATION=true` during registration when old updates should be discarded.
 
+Setup page is unavailable:
+Check that PostgreSQL is reachable, Flyway migrations have run, and `ATLAS_SETUP_ENABLED=true`.
+
 ## Security Notes
 
 - Never commit the bot token.
 - Use `ATLAS_TELEGRAM_WEBHOOK_SECRET` in production.
 - Use HTTPS for the public webhook URL.
-- Keep Telegram disabled locally by default.
+- Keep Telegram disabled locally by default and use setup or polling mode for local testing.
 - Store production secrets in the deployment secret manager or environment, not in git.
