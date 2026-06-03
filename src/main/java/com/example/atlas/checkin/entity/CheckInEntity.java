@@ -26,10 +26,20 @@ public class CheckInEntity {
 
     private Integer fatigue;
 
+    private Integer focus;
+
     @Column(name = "sleep_quality")
     private Integer sleepQuality;
 
     private Integer stress;
+
+    private Integer mood;
+
+    @Column(name = "main_priority", columnDefinition = "text")
+    private String mainPriority;
+
+    @Column(name = "overload_flag", nullable = false)
+    private boolean overloadFlag;
 
     @Column(name = "pain_flag", nullable = false)
     private boolean painFlag;
@@ -48,8 +58,12 @@ public class CheckInEntity {
             TelegramUserEntity telegramUser,
             Integer energy,
             Integer fatigue,
+            Integer focus,
             Integer sleepQuality,
             Integer stress,
+            Integer mood,
+            String mainPriority,
+            boolean overloadFlag,
             boolean painFlag,
             String notes,
             Instant createdAt
@@ -58,8 +72,12 @@ public class CheckInEntity {
         this.telegramUser = telegramUser;
         this.energy = energy;
         this.fatigue = fatigue;
+        this.focus = focus;
         this.sleepQuality = sleepQuality;
         this.stress = stress;
+        this.mood = mood;
+        this.mainPriority = mainPriority;
+        this.overloadFlag = overloadFlag;
         this.painFlag = painFlag;
         this.notes = notes;
         this.createdAt = createdAt;
@@ -69,13 +87,31 @@ public class CheckInEntity {
             TelegramUserEntity telegramUser,
             Integer energy,
             Integer fatigue,
+            Integer focus,
             Integer sleepQuality,
             Integer stress,
+            Integer mood,
+            String mainPriority,
+            boolean overloadFlag,
             boolean painFlag,
             String notes,
             Instant createdAt
     ) {
-        return new CheckInEntity(UUID.randomUUID(), telegramUser, energy, fatigue, sleepQuality, stress, painFlag, notes, createdAt);
+        return new CheckInEntity(
+                UUID.randomUUID(),
+                telegramUser,
+                energy,
+                fatigue,
+                focus,
+                sleepQuality,
+                stress,
+                mood,
+                mainPriority,
+                overloadFlag,
+                painFlag,
+                notes,
+                createdAt
+        );
     }
 
     public UUID getId() {
@@ -94,12 +130,28 @@ public class CheckInEntity {
         return fatigue;
     }
 
+    public Integer getFocus() {
+        return focus;
+    }
+
     public Integer getSleepQuality() {
         return sleepQuality;
     }
 
     public Integer getStress() {
         return stress;
+    }
+
+    public Integer getMood() {
+        return mood;
+    }
+
+    public String getMainPriority() {
+        return mainPriority;
+    }
+
+    public boolean isOverloadFlag() {
+        return overloadFlag;
     }
 
     public boolean isPainFlag() {

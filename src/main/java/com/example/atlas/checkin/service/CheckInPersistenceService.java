@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 public class CheckInPersistenceService {
 
     private static final Pattern KEY_VALUE_PATTERN = Pattern.compile(
-            "(energy|fatigue|sleep|stress|энергия|усталость|сон|стресс)\\s*[:=]?\\s*(10|[1-9])",
+            "(energy|fatigue|focus|sleep|stress|mood|энергия|усталость|фокус|сон|стресс|настроение)\\s*[:=]?\\s*(10|[1-9])",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -41,20 +41,26 @@ public class CheckInPersistenceService {
                 user,
                 parsed.energy(),
                 parsed.fatigue(),
+                parsed.focus(),
                 parsed.sleepQuality(),
                 parsed.stress(),
+                parsed.mood(),
+                parsed.mainPriority(),
+                parsed.overloadFlag(),
                 parsed.painFlag(),
                 text,
                 Instant.now(clock)
         ));
     }
 
-    ParsedCheckIn parse(String text) {
+    public ParsedCheckIn parse(String text) {
         String value = text == null ? "" : text;
         Integer energy = null;
         Integer fatigue = null;
+        Integer focus = null;
         Integer sleepQuality = null;
         Integer stress = null;
+        Integer mood = null;
 
         Matcher matcher = KEY_VALUE_PATTERN.matcher(value);
         while (matcher.find()) {
@@ -64,18 +70,64 @@ public class CheckInPersistenceService {
                 energy = number;
             } else if (key.equals("fatigue") || key.equals("усталость")) {
                 fatigue = number;
+            } else if (key.equals("focus") || key.equals("фокус")) {
+                focus = number;
             } else if (key.equals("sleep") || key.equals("сон")) {
                 sleepQuality = number;
             } else if (key.equals("stress") || key.equals("стресс")) {
                 stress = number;
+            } else if (key.equals("mood") || key.equals("настроение")) {
+                mood = number;
             }
         }
 
         String lower = value.toLowerCase(Locale.ROOT);
         boolean painFlag = lower.contains("pain") || lower.contains("боль") || lower.contains("болит");
-        return new ParsedCheckIn(energy, fatigue, sleepQuality, stress, painFlag);
+        boolean overloadFlag = lower.contains("overload")
+                || lower.contains("перегруз")
+                || lower.contains("тревож")
+                || lower.contains("worrying symptom");
+        return new ParsedCheckIn(energy, fatigue, focus, sleepQuality, stress, mood, null, overloadFlag, painFlag);
     }
 
-    record ParsedCheckIn(Integer energy, Integer fatigue, Integer sleepQuality, Integer stress, boolean painFlag) {
+    public CheckInEntity recordFlow(
+            TelegramUserEntity user,
+            Integer energy,
+            Integer focus,
+            Integer stress,
+            Integer sleepQuality,
+            Integer mood,
+            String mainPriority,
+            boolean overloadFlag,
+            boolean painFlag,
+            String notes
+    ) {
+        return repository.save(CheckInEntity.create(
+                user,
+                energy,
+                null,
+                focus,
+                sleepQuality,
+                stress,
+                mood,
+                mainPriority,
+                overloadFlag,
+                painFlag,
+                notes,
+                Instant.now(clock)
+        ));
+    }
+
+    public record ParsedCheckIn(
+            Integer energy,
+            Integer fatigue,
+            Integer focus,
+            Integer sleepQuality,
+            Integer stress,
+            Integer mood,
+            String mainPriority,
+            boolean overloadFlag,
+            boolean painFlag
+    ) {
     }
 }

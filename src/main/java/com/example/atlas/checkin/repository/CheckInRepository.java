@@ -12,6 +12,8 @@ public interface CheckInRepository extends JpaRepository<CheckInEntity, UUID> {
 
     List<CheckInEntity> findByTelegramUserOrderByCreatedAtDesc(TelegramUserEntity telegramUser);
 
+    List<CheckInEntity> findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(TelegramUserEntity telegramUser, Instant createdAt);
+
     long countByTelegramUserAndCreatedAtAfter(TelegramUserEntity telegramUser, Instant createdAt);
 
     long countByCreatedAtAfter(Instant createdAt);
