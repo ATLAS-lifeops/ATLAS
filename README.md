@@ -4,7 +4,7 @@
 
 <h1 align="center">ATLAS</h1>
 
-**ATLAS** — backend-first Telegram-система для режима, тренировок, восстановления, привычек, питания и прогресса.
+**ATLAS** — backend-first Telegram-система для состояния, фокуса, привычек, планирования, рефлексии и прогресса.
 
 Проект задуман как мультиагентный Telegram-ассистент: пользователь общается с одним ботом, а backend маршрутизирует запросы к специализированным агентам ATLAS.
 
@@ -16,7 +16,6 @@
 - Spring Boot приложение с хранением данных в PostgreSQL
 - оркестрация агентов для повседневных сценариев пользователя
 - безопасная обработка Telegram-команд
-- будущая абстракция LLM-провайдера
 
 <h2 align="center">Agents</h2>
 
@@ -40,8 +39,12 @@
 /checkin
 /recovery
 /habits
+/evening
+/review
 /food
 /report
+/cancel
+/help
 /emergency
 ```
 
@@ -69,11 +72,42 @@ mvn test
 ATLAS_TELEGRAM_ENABLED=false mvn spring-boot:run
 ```
 
-Запуск через Docker Compose:
+Рекомендуемый запуск для первого локального старта:
+
+```bash
+git clone https://github.com/ATLAS-lifeops/ATLAS.git
+cd ATLAS
+make start
+```
+
+Браузер откроется автоматически:
+
+```text
+http://localhost:8080/setup
+```
+
+`make start` запускает Docker Compose, ждёт готовности backend и открывает страницу настройки на стороне хоста. Это нужно потому, что `docker compose up -d` запускает контейнеры в фоне и не может надёжно открыть браузер хост-машины на macOS, Windows и Linux.
+
+Прямой запуск через Docker Compose:
 
 ```bash
 cp .env.example .env
-docker compose up --build
+docker compose up --build -d
+```
+
+После прямого запуска открой вручную:
+
+```text
+http://localhost:8080/setup
+```
+
+Дополнительные команды:
+
+```bash
+make up
+make down
+make logs
+make restart
 ```
 
 Эндпоинт состояния:
@@ -120,7 +154,7 @@ POLLING — простой локальный режим, приложение �
 WEBHOOK — production-режим, приложение принимает POST /telegram/webhook и проверяет secret token.
 ```
 
-Данные v0.4.0 хранятся в PostgreSQL через Flyway: runtime settings, Telegram users, Telegram messages и check-ins. Команда `/report` использует сохранённые check-ins и сообщения, если они есть.
+Данные v0.5.0 хранятся в PostgreSQL через Flyway: runtime settings, Telegram users, Telegram messages, life profiles, conversation states, check-ins, habits и evening reflections. Команда `/report` использует сохранённые данные за последние 7 дней, если они есть.
 
 Не добавляй реальные секреты в репозиторий.
 
@@ -178,6 +212,7 @@ ATLAS не является врачом, диетологом или медиц
 <h2 align="center">Docs</h2>
 
 - [Границы backend-части](docs/architecture/backend-scope.md)
+- [Life onboarding and tracking flows](docs/product/life-flows.md)
 - [Production Telegram запуск](docs/deployment/telegram-production.md)
 
 <h2 align="center">License</h2>

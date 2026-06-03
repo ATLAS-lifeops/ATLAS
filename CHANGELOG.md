@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.5.0
+
+- Added life profile persistence for onboarding
+- Added conversation state persistence for step-based Telegram flows
+- Added life-oriented onboarding from `/start`
+- Added step-based daily check-in flow
+- Added profile-aware and check-in-aware day planning
+- Added habit tracking flow
+- Added evening reflection flow with `/evening` and `/review`
+- Added weekly report using check-ins, habits and reflections
+- Added `/help`, `/cancel` and `/emergency` command support
+- Added host-side `make start` launcher for Docker Compose and setup page opening
+- Updated safety handling for broader life-tracking scenarios
+- Documented ATLAS as a multi-agent life tracker rather than a sports-focused assistant
+
 ## v0.4.0
 
 - Added Flyway-backed persistence for Telegram users, messages, check-ins and runtime settings
