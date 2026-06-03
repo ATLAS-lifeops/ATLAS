@@ -9,14 +9,29 @@ import java.util.Locale;
 public class SafetyGuard {
 
     private static final List<String> RISK_KEYWORDS = List.of(
+            "боль",
+            "болит",
             "pain",
+            "травма",
             "injury",
+            "боль в груди",
             "chest pain",
+            "проблемы с дыханием",
+            "трудно дышать",
             "breathing problems",
+            "breathing issues",
+            "головокружение",
             "dizziness",
+            "обморок",
             "fainting",
-            "heart problems",
+            "давление",
             "blood pressure",
+            "сердце",
+            "heart",
+            "heart problems",
+            "сильный перегруз",
+            "перегруз",
+            "severe overload",
             "eating disorder",
             "extreme weight loss"
     );
@@ -32,7 +47,7 @@ public class SafetyGuard {
 
     public String safetyResponse() {
         return "Похоже, сообщение затрагивает симптомы или риски для здоровья. "
-                + "Снизь интенсивность, не тренируйся через боль и обратись к медицинскому специалисту, "
-                + "если симптомы сильные, повторяются или связаны с дыханием, сердцем, давлением, головокружением или обмороком.";
+                + "Не игнорируй сильные или повторяющиеся сигналы и обратись к квалифицированному специалисту, "
+                + "если есть боль в груди, проблемы с дыханием, давлением, сердцем, головокружением, обмороком или выраженным перегрузом.";
     }
 }
