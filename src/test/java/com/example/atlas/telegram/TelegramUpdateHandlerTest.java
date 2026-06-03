@@ -31,7 +31,7 @@ class TelegramUpdateHandlerTest {
 
         assertThat(handled).isTrue();
         assertThat(apiClient.sentTexts()).singleElement().asString()
-                .contains("Тренировка на сегодня");
+                .contains("Движение на сегодня");
     }
 
     @Test
@@ -52,8 +52,8 @@ class TelegramUpdateHandlerTest {
     @Test
     void safetyKeywordReturnsSafeRecommendation() {
         assertThat(handler.handleTextMessage("I have chest pain during workout"))
-                .contains("Снизь интенсивность")
-                .contains("медицинскому специалисту");
+                .contains("квалифицированному специалисту")
+                .contains("боль в груди");
     }
 
     @Test
