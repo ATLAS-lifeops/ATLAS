@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.3
+
+- Added production Telegram webhook configuration
+- Added Telegram webhook secret validation
+- Added optional webhook registration on application startup
+- Added production-safe Telegram update logging
+- Added Telegram production deployment documentation
+- Expanded Telegram production test coverage
+
 ## v0.3.2
 
 - Removed obsolete frontend-related artifacts from the backend repository
