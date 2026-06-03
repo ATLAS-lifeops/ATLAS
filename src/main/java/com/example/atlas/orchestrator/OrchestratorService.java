@@ -22,6 +22,10 @@ public class OrchestratorService {
 
     public AgentResult route(String message) {
         RequestType requestType = resolveRequestType(message);
+        return route(requestType, message);
+    }
+
+    public AgentResult route(RequestType requestType, String message) {
         AgentContext context = AgentContext.anonymous(message, requestType);
 
         List<AgentResult> results = agents.stream()

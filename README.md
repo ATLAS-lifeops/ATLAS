@@ -102,6 +102,34 @@ ATLAS_TELEGRAM_BOT_USERNAME=<username>
 
 Не добавляй реальные секреты в репозиторий.
 
+<h2 align="center">Production Telegram Launch</h2>
+
+Production-запуск Telegram-бота описан в [deployment guide](docs/deployment/telegram-production.md).
+
+Минимальные production-переменные:
+
+```bash
+ATLAS_TELEGRAM_ENABLED=true
+ATLAS_TELEGRAM_BOT_TOKEN=<telegram-bot-token>
+ATLAS_TELEGRAM_BOT_USERNAME=<telegram-bot-username>
+ATLAS_TELEGRAM_WEBHOOK_PATH=/telegram/webhook
+ATLAS_TELEGRAM_WEBHOOK_SECRET=<random-webhook-secret>
+ATLAS_PUBLIC_BASE_URL=https://<public-domain>
+ATLAS_TELEGRAM_REGISTER_WEBHOOK_ON_STARTUP=true
+```
+
+Production health endpoint:
+
+```text
+GET /actuator/health
+```
+
+Telegram webhook endpoint:
+
+```text
+POST /telegram/webhook
+```
+
 <h2 align="center">Roadmap</h2>
 
 Основная продуктовая дорожная карта:

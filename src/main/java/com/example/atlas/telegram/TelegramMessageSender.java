@@ -23,13 +23,23 @@ public class TelegramMessageSender {
     }
 
     public void sendText(long chatId, String text) {
-        for (String chunk : splitText(text)) {
+        List<String> chunks = splitText(text);
+        for (int index = 0; index < chunks.size(); index++) {
+            String chunk = chunks.get(index);
             try {
                 telegramApiClient.sendMessage(chatId, chunk);
+                log.info(
+                        "Telegram sendMessage succeeded: chat_id={}, chunk_index={}, chunk_count={}",
+                        chatId,
+                        index + 1,
+                        chunks.size()
+                );
             } catch (RuntimeException exception) {
                 log.warn(
-                        "Telegram sendMessage failed for chat {} with {}",
+                        "Telegram sendMessage failed: chat_id={}, chunk_index={}, chunk_count={}, error_type={}",
                         chatId,
+                        index + 1,
+                        chunks.size(),
                         exception.getClass().getSimpleName()
                 );
             }

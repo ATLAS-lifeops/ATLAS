@@ -13,9 +13,9 @@
 
     <groupId>com.example</groupId>
     <artifactId>atlas</artifactId>
-    <version>0.3.2</version>
+    <version>0.3.3</version>
     <name>ATLAS</name>
-    <description>Personal AI system for rhythm, training, recovery, habits, nutrition and progress.</description>
+    <description>Personal system for rhythm, training, recovery, habits, nutrition and progress.</description>
 
     <properties>
         <java.version>21</java.version>
