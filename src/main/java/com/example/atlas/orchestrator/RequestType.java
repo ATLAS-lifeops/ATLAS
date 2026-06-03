@@ -8,8 +8,11 @@ public enum RequestType {
     CHECKIN,
     RECOVERY,
     HABITS,
+    EVENING_REFLECTION,
     FOOD,
     REPORT,
     EMERGENCY,
+    HELP,
+    CANCEL,
     GENERAL
 }

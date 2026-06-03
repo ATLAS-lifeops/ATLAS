@@ -1,6 +1,6 @@
 package com.example.atlas.telegram;
 
-import com.example.atlas.checkin.service.CheckInPersistenceService;
+import com.example.atlas.conversation.service.TelegramLifeFlowService;
 import com.example.atlas.message.service.TelegramMessagePersistenceService;
 import com.example.atlas.orchestrator.OrchestratorService;
 import com.example.atlas.orchestrator.RequestType;
@@ -23,7 +23,7 @@ public class TelegramUpdateHandler {
     private final SafetyGuard safetyGuard;
     private final ObjectProvider<TelegramUserService> userService;
     private final ObjectProvider<TelegramMessagePersistenceService> messagePersistenceService;
-    private final ObjectProvider<CheckInPersistenceService> checkInPersistenceService;
+    private final ObjectProvider<TelegramLifeFlowService> lifeFlowService;
 
     @Autowired
     public TelegramUpdateHandler(
@@ -32,14 +32,14 @@ public class TelegramUpdateHandler {
             SafetyGuard safetyGuard,
             ObjectProvider<TelegramUserService> userService,
             ObjectProvider<TelegramMessagePersistenceService> messagePersistenceService,
-            ObjectProvider<CheckInPersistenceService> checkInPersistenceService
+            ObjectProvider<TelegramLifeFlowService> lifeFlowService
     ) {
         this.orchestratorService = orchestratorService;
         this.messageSender = messageSender;
         this.safetyGuard = safetyGuard;
         this.userService = userService;
         this.messagePersistenceService = messagePersistenceService;
-        this.checkInPersistenceService = checkInPersistenceService;
+        this.lifeFlowService = lifeFlowService;
     }
 
     TelegramUpdateHandler(
@@ -52,7 +52,7 @@ public class TelegramUpdateHandler {
         this.safetyGuard = safetyGuard;
         this.userService = null;
         this.messagePersistenceService = null;
-        this.checkInPersistenceService = null;
+        this.lifeFlowService = null;
     }
 
     public boolean handleUpdate(TelegramUpdate update) {
@@ -93,19 +93,17 @@ public class TelegramUpdateHandler {
         RequestType requestType = orchestratorService.resolveRequestType(message.text());
         TelegramUserEntity user = upsertUser(message);
         recordIncoming(user, message.chat().id(), requestType, message.text());
-        if (requestType == RequestType.CHECKIN) {
-            recordCheckIn(user, message.text());
-        }
 
-        String response = handleTextMessage(message.text(), requestType);
+        RoutedResponse routedResponse = handleTextMessage(user, message.text(), requestType);
+        String response = routedResponse.content();
         messageSender.sendText(message.chat().id(), response);
-        recordOutgoing(user, message.chat().id(), requestType, response);
+        recordOutgoing(user, message.chat().id(), routedResponse.requestType(), response);
         log.info(
                 "Telegram update handled: update_id={}, chat_id={}, handled={}, request_type={}",
                 updateId(update),
                 message.chat().id(),
                 true,
-                requestType
+                routedResponse.requestType()
         );
         return true;
     }
@@ -120,6 +118,20 @@ public class TelegramUpdateHandler {
         }
 
         return orchestratorService.route(requestType, text).content();
+    }
+
+    private RoutedResponse handleTextMessage(TelegramUserEntity user, String text, RequestType requestType) {
+        TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
+        if (service != null) {
+            return service.handle(user, text, requestType)
+                    .map(result -> new RoutedResponse(result.content(), result.requestType()))
+                    .orElseGet(() -> fallbackResponse(text, requestType));
+        }
+        return fallbackResponse(text, requestType);
+    }
+
+    private RoutedResponse fallbackResponse(String text, RequestType requestType) {
+        return new RoutedResponse(handleTextMessage(text, requestType), requestType);
     }
 
     private TelegramUserEntity upsertUser(TelegramUpdate.TelegramMessage message) {
@@ -141,14 +153,10 @@ public class TelegramUpdateHandler {
         }
     }
 
-    private void recordCheckIn(TelegramUserEntity user, String text) {
-        CheckInPersistenceService service = checkInPersistenceService == null ? null : checkInPersistenceService.getIfAvailable();
-        if (service != null) {
-            service.record(user, text);
-        }
-    }
-
     private Long updateId(TelegramUpdate update) {
         return update == null ? null : update.updateId();
+    }
+
+    private record RoutedResponse(String content, RequestType requestType) {
     }
 }

@@ -6,12 +6,12 @@ public final class TelegramReplyTemplates {
     }
 
     public static String startWelcome() {
-        return "ATLAS на связи. Я помогаю держать режим, тренировки, восстановление, привычки и питание в реалистичном ритме. "
-                + "Начни с /checkin, чтобы я понял состояние, или /day для плана на день.";
+        return "ATLAS на связи. Я помогаю видеть состояние, держать фокус, отслеживать привычки "
+                + "и возвращать день в управляемый ритм. Начни с /start или /checkin.";
     }
 
     public static String generalFallback() {
-        return "Я могу помочь с режимом, тренировкой, восстановлением, привычками и питанием. Быстрый старт: /checkin или /day.";
+        return "Я могу помочь собрать день в систему: /checkin, /day, /habits, /evening или /report.";
     }
 
     public static String unsupportedContent() {

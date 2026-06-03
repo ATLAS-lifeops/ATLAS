@@ -35,7 +35,7 @@ public class OrchestratorService {
 
         if (results.isEmpty()) {
             return AgentResult.reply(
-                    "Я пока не понял запрос. Можно начать с /day, /workout, /checkin или /emergency.",
+                    "Я могу помочь собрать день в систему: /checkin, /day, /habits, /evening или /report.",
                     "ATLAS Core"
             );
         }
@@ -71,9 +71,12 @@ public class OrchestratorService {
             case "/checkin" -> RequestType.CHECKIN;
             case "/recovery" -> RequestType.RECOVERY;
             case "/habits" -> RequestType.HABITS;
+            case "/evening", "/review" -> RequestType.EVENING_REFLECTION;
             case "/food" -> RequestType.FOOD;
             case "/report" -> RequestType.REPORT;
             case "/emergency" -> RequestType.EMERGENCY;
+            case "/help" -> RequestType.HELP;
+            case "/cancel" -> RequestType.CANCEL;
             default -> RequestType.GENERAL;
         };
     }
