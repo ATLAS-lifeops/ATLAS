@@ -2,18 +2,14 @@ package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.springframework.web.client.RestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
 
 class TelegramWebhookRegistrationServiceTest {
 
-    private final TelegramWebhookClient webhookClient = mock(TelegramWebhookClient.class);
+    private final RecordingTelegramWebhookClient webhookClient = new RecordingTelegramWebhookClient();
 
     @Test
     void registrationDisabledDoesNotCallClient() {
@@ -21,7 +17,7 @@ class TelegramWebhookRegistrationServiceTest {
 
         service.registerWebhookIfEnabled();
 
-        verify(webhookClient, never()).setWebhook(org.mockito.ArgumentMatchers.any());
+        assertThat(webhookClient.request()).isNull();
     }
 
     @Test
@@ -30,12 +26,9 @@ class TelegramWebhookRegistrationServiceTest {
 
         service.registerWebhookIfEnabled();
 
-        ArgumentCaptor<TelegramWebhookClient.TelegramWebhookRequest> request =
-                ArgumentCaptor.forClass(TelegramWebhookClient.TelegramWebhookRequest.class);
-        verify(webhookClient).setWebhook(request.capture());
-        assertThat(request.getValue().url()).isEqualTo("https://atlas.example/telegram/webhook");
-        assertThat(request.getValue().secretToken()).isEqualTo("webhook-secret");
-        assertThat(request.getValue().dropPendingUpdates()).isTrue();
+        assertThat(webhookClient.request().url()).isEqualTo("https://atlas.example/telegram/webhook");
+        assertThat(webhookClient.request().secretToken()).isEqualTo("webhook-secret");
+        assertThat(webhookClient.request().dropPendingUpdates()).isTrue();
     }
 
     @Test
@@ -67,13 +60,9 @@ class TelegramWebhookRegistrationServiceTest {
 
     @Test
     void telegramApiFailurePropagatesClearException() {
-        TelegramWebhookClient failingClient = mock(TelegramWebhookClient.class);
-        doThrow(new IllegalStateException("Telegram webhook registration was rejected by Telegram API."))
-                .when(failingClient)
-                .setWebhook(org.mockito.ArgumentMatchers.any());
         TelegramWebhookRegistrationService service = new TelegramWebhookRegistrationService(
                 properties(true, "https://atlas.example", "/telegram/webhook"),
-                failingClient
+                new FailingTelegramWebhookClient()
         );
 
         assertThatThrownBy(service::registerWebhookIfEnabled)
@@ -96,5 +85,35 @@ class TelegramWebhookRegistrationServiceTest {
                 registerWebhook,
                 true
         ));
+    }
+
+    private static class RecordingTelegramWebhookClient extends TelegramWebhookClient {
+
+        private TelegramWebhookRequest request;
+
+        RecordingTelegramWebhookClient() {
+            super(RestClient.builder().baseUrl("https://api.telegram.org/bottest-token").build());
+        }
+
+        @Override
+        public void setWebhook(TelegramWebhookRequest request) {
+            this.request = request;
+        }
+
+        TelegramWebhookRequest request() {
+            return request;
+        }
+    }
+
+    private static class FailingTelegramWebhookClient extends TelegramWebhookClient {
+
+        FailingTelegramWebhookClient() {
+            super(RestClient.builder().baseUrl("https://api.telegram.org/bottest-token").build());
+        }
+
+        @Override
+        public void setWebhook(TelegramWebhookRequest request) {
+            throw new IllegalStateException("Telegram webhook registration was rejected by Telegram API.");
+        }
     }
 }

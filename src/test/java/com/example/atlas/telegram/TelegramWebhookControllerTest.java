@@ -6,13 +6,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 class TelegramWebhookControllerTest {
 
-    private final TelegramBotAdapter botAdapter = mock(TelegramBotAdapter.class);
+    private final RecordingTelegramBotAdapter botAdapter = new RecordingTelegramBotAdapter();
 
     @Test
     void configuredSecretWithValidHeaderIsAccepted() {
@@ -22,7 +19,7 @@ class TelegramWebhookControllerTest {
         ResponseEntity<Void> response = controller.receiveUpdate("expected-secret", update);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(botAdapter).handleUpdate(update);
+        assertThat(botAdapter.handledUpdate()).isSameAs(update);
     }
 
     @Test
@@ -33,7 +30,7 @@ class TelegramWebhookControllerTest {
         ResponseEntity<Void> response = controller.receiveUpdate(null, update);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        verify(botAdapter, never()).handleUpdate(update);
+        assertThat(botAdapter.handledUpdate()).isNull();
     }
 
     @Test
@@ -44,7 +41,7 @@ class TelegramWebhookControllerTest {
         ResponseEntity<Void> response = controller.receiveUpdate("wrong-secret", update);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
-        verify(botAdapter, never()).handleUpdate(update);
+        assertThat(botAdapter.handledUpdate()).isNull();
     }
 
     @Test
@@ -55,7 +52,7 @@ class TelegramWebhookControllerTest {
         ResponseEntity<Void> response = controller.receiveUpdate(null, update);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(botAdapter).handleUpdate(update);
+        assertThat(botAdapter.handledUpdate()).isSameAs(update);
     }
 
     @Test
@@ -65,7 +62,8 @@ class TelegramWebhookControllerTest {
         ResponseEntity<Void> response = controller.receiveUpdate(null, null);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        verify(botAdapter).handleUpdate(null);
+        assertThat(botAdapter.wasCalled()).isTrue();
+        assertThat(botAdapter.handledUpdate()).isNull();
     }
 
     private TelegramWebhookController controllerWithSecret(String webhookSecret) {
@@ -96,5 +94,39 @@ class TelegramWebhookControllerTest {
                 null,
                 null
         );
+    }
+
+    private static class RecordingTelegramBotAdapter extends TelegramBotAdapter {
+
+        private boolean called;
+        private TelegramUpdate handledUpdate;
+
+        RecordingTelegramBotAdapter() {
+            super(new AtlasProperties(new AtlasProperties.Telegram(
+                    true,
+                    "test-token",
+                    "atlas_test_bot",
+                    "/telegram/webhook",
+                    "",
+                    "",
+                    false,
+                    true
+            )), null);
+        }
+
+        @Override
+        public boolean handleUpdate(TelegramUpdate update) {
+            called = true;
+            handledUpdate = update;
+            return true;
+        }
+
+        boolean wasCalled() {
+            return called;
+        }
+
+        TelegramUpdate handledUpdate() {
+            return handledUpdate;
+        }
     }
 }
