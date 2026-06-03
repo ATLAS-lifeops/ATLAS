@@ -1,6 +1,7 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,9 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 @Component
 @ConditionalOnProperty(prefix = "atlas.telegram", name = "enabled", havingValue = "true")
@@ -34,19 +33,11 @@ public class TelegramWebhookClient {
     }
 
     public void setWebhook(TelegramWebhookRequest request) {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("url", request.url());
-        if (request.hasSecretToken()) {
-            body.put("secret_token", request.secretToken());
-        }
-        body.put("drop_pending_updates", request.dropPendingUpdates());
-        body.put("allowed_updates", List.of("message"));
-
         TelegramWebhookApiResponse response;
         try {
             response = restClient.post()
                     .uri("/setWebhook")
-                    .body(body)
+                    .body(TelegramWebhookPayload.from(request))
                     .retrieve()
                     .body(TelegramWebhookApiResponse.class);
         } catch (RestClientException exception) {
@@ -76,5 +67,64 @@ public class TelegramWebhookClient {
             boolean ok,
             @JsonProperty("description") String description
     ) {
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private static final class TelegramWebhookPayload {
+
+        private final String url;
+        private final String secretToken;
+        private final boolean dropPendingUpdates;
+        private final List<String> allowedUpdates;
+
+        private TelegramWebhookPayload(
+                String url,
+                String secretToken,
+                boolean dropPendingUpdates,
+                List<String> allowedUpdates
+        ) {
+            this.url = url;
+            this.secretToken = secretToken;
+            this.dropPendingUpdates = dropPendingUpdates;
+            this.allowedUpdates = allowedUpdates;
+        }
+
+        static TelegramWebhookPayload from(TelegramWebhookRequest request) {
+            return new TelegramWebhookPayload(
+                    request.url(),
+                    request.hasSecretToken() ? request.secretToken() : null,
+                    request.dropPendingUpdates(),
+                    List.of("message")
+            );
+        }
+
+        public String getUrl() {
+            return url;
+        }
+
+        @JsonProperty("secret_token")
+        public String getSecretToken() {
+            return secretToken;
+        }
+
+        @JsonProperty("drop_pending_updates")
+        public boolean isDropPendingUpdates() {
+            return dropPendingUpdates;
+        }
+
+        @JsonProperty("allowed_updates")
+        public List<String> getAllowedUpdates() {
+            return allowedUpdates;
+        }
+
+        @Override
+        public String toString() {
+            return "TelegramWebhookPayload{"
+                    + "url='" + url + '\''
+                    + ", secret_token=" + (secretToken == null ? "absent" : "configured")
+                    + ", drop_pending_updates=" + dropPendingUpdates
+                    + ", allowed_updates=" + allowedUpdates
+                    + '}';
+        }
     }
 }

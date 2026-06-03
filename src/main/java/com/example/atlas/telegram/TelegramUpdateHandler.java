@@ -1,6 +1,7 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.orchestrator.OrchestratorService;
+import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.safety.SafetyGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,31 +30,65 @@ public class TelegramUpdateHandler {
 
     public boolean handleUpdate(TelegramUpdate update) {
         if (update == null || update.message() == null) {
-            log.debug("Ignoring unsupported Telegram update without a text message");
+            log.info(
+                    "Telegram update handled: update_id={}, chat_id={}, handled={}, reason={}",
+                    updateId(update),
+                    null,
+                    false,
+                    "unsupported_update"
+            );
             return false;
         }
 
         TelegramUpdate.TelegramMessage message = update.message();
         if (message.chat() == null || message.chat().id() == null) {
-            log.debug("Ignoring Telegram message without chat id");
+            log.info(
+                    "Telegram update handled: update_id={}, chat_id={}, handled={}, reason={}",
+                    updateId(update),
+                    null,
+                    false,
+                    "missing_chat_id"
+            );
             return false;
         }
 
         if (message.text() == null || message.text().isBlank()) {
-            log.debug("Ignoring Telegram non-text or blank message");
+            log.info(
+                    "Telegram update handled: update_id={}, chat_id={}, handled={}, reason={}",
+                    updateId(update),
+                    message.chat().id(),
+                    false,
+                    "blank_text"
+            );
             return false;
         }
 
-        String response = handleTextMessage(message.text());
+        RequestType requestType = orchestratorService.resolveRequestType(message.text());
+        String response = handleTextMessage(message.text(), requestType);
         messageSender.sendText(message.chat().id(), response);
+        log.info(
+                "Telegram update handled: update_id={}, chat_id={}, handled={}, request_type={}",
+                updateId(update),
+                message.chat().id(),
+                true,
+                requestType
+        );
         return true;
     }
 
     public String handleTextMessage(String text) {
+        return handleTextMessage(text, orchestratorService.resolveRequestType(text));
+    }
+
+    private String handleTextMessage(String text, RequestType requestType) {
         if (safetyGuard.requiresSafetyResponse(text)) {
             return safetyGuard.safetyResponse();
         }
 
-        return orchestratorService.route(text).content();
+        return orchestratorService.route(requestType, text).content();
+    }
+
+    private Long updateId(TelegramUpdate update) {
+        return update == null ? null : update.updateId();
     }
 }
