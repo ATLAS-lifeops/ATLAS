@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.2
+
+- Added beginner-friendly `make start` flow that starts Docker Compose, waits for health, and opens `/setup`
+- Added safe local `.env` placeholders for setup and preconfigured bot modes
+- Added setup mode as a valid local state when Telegram secrets are missing
+- Added preconfigured local bot startup from `ATLAS_TELEGRAM_BOT_TOKEN`
+- Added safe setup status fields without exposing bot token or webhook secret
+- Improved setup page copy for local polling and production webhook modes
+- Persisted local runtime data through Docker volumes
+- Expanded local launch and setup-mode test coverage
+
 ## v0.5.1
 
 - Added Telegram inline keyboard support
