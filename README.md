@@ -160,7 +160,9 @@ WEBHOOK — production-режим, приложение принимает POST 
 
 Данные v0.5.0 хранятся в PostgreSQL через Flyway: runtime settings, Telegram users, Telegram messages, life profiles, conversation states, check-ins, habits и evening reflections. Команда `/report` использует сохранённые данные за последние 7 дней, если они есть.
 
-`/setup/status` возвращает только безопасный публичный статус: нужен ли setup, настроен ли Telegram, username бота, режим запуска и состояние adapter. Token и webhook secret не возвращаются.
+`/setup/status` возвращает только безопасный публичный статус: нужен ли setup, настроен ли Telegram, username бота, режим запуска, состояние adapter и LLM status. Token, webhook secret и LLM API key не возвращаются.
+
+LLM в v0.6.0 опционален и по умолчанию выключен. Настройка OpenAI-compatible provider описана в [русской](docs/ru/llm.md) и [английской](docs/en/llm.md) документации. Если LLM отключён, настроен неполно или провайдер недоступен, ATLAS использует deterministic responses.
 
 Не добавляй реальные секреты в репозиторий.
 
@@ -203,7 +205,7 @@ v0.3.1 — стабилизация Telegram-интеграции
 v0.4.0 — хранение данных пользователей, сообщений и чек-инов
 v0.5.0 — онбординг и диалоговые сценарии
 v0.6.0 — LLM-абстракция
-v0.6.1 — первая интеграция реального LLM-провайдера
+v0.6.1 — развитие LLM-powered agents
 ```
 
 Служебные релизы:
@@ -224,6 +226,8 @@ ATLAS не является врачом, диетологом или медиц
 - [Local launch](docs/en/local-launch.md)
 - [Telegram UX RU](docs/ru/telegram-ux.md)
 - [Telegram UX EN](docs/en/telegram-ux.md)
+- [LLM setup RU](docs/ru/llm.md)
+- [LLM setup EN](docs/en/llm.md)
 - [История изменений RU](docs/ru/changelog.md)
 - [Changelog EN](docs/en/changelog.md)
 

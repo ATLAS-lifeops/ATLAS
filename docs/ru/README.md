@@ -6,8 +6,9 @@ ATLAS - backend-first Telegram-система для состояния, фок�
 
 - [Локальный запуск](local-launch.md)
 - [Telegram UX](telegram-ux.md)
+- [LLM setup](llm.md)
 - [История изменений](changelog.md)
 
 ## Scope
 
-ATLAS работает как Telegram-first backend-продукт. Фронтенд, лендинг, web dashboard, hosted official bot, reminders и LLM-интеграция не входят в v0.5.3.
+ATLAS работает как Telegram-first backend-продукт. Фронтенд, лендинг, web dashboard, hosted official bot, reminders, persistent agent memory, embeddings и vector search не входят в v0.6.0.

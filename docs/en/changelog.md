@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.6.0
+
+### Added
+- Added optional LLM abstraction layer.
+- Added OpenAI-compatible LLM client.
+- Added LLM configuration through environment variables.
+- Added prompt templates for day plans, weekly reports and questions.
+- Added context assembly from profile, check-ins, habits and reflections.
+- Added optional LLM-enhanced day plans.
+- Added optional LLM-enhanced weekly report summaries.
+- Added structured question answering within ATLAS scope.
+- Added deterministic fallback behavior.
+- Added Russian and English LLM documentation.
+
+### Changed
+- ATLAS can run with or without LLM.
+- Setup/status now includes safe LLM status without exposing secrets.
+
+### Fixed
+- Prevented LLM API key leakage in logs, UI and documentation.
+- Added handling for timeout, rate limit and provider errors.
+
+### Security
+- LLM is not used for diagnosis or treatment recommendations.
+- For serious symptoms, ATLAS uses safe responses and recommends contacting a qualified professional.
+
 ## v0.5.3
 
 ### Added
