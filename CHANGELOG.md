@@ -4,6 +4,7 @@
 
 - Added Telegram inline keyboard support
 - Added callback query parsing and routing
+- Added language-first Telegram onboarding with RU/EN selection
 - Added button-first main menu after `/start`
 - Added onboarding buttons for profile setup
 - Added numeric buttons for daily check-ins

@@ -4,7 +4,14 @@ ATLAS supports both inline buttons and text commands in Telegram. Buttons are th
 
 ## Main Menu
 
-After `/start`, ATLAS either starts onboarding or shows the main menu when the life profile is already completed.
+After `/start`, ATLAS first asks new users to choose a language. The language selection panel uses inline buttons:
+
+- Russian
+- English
+
+The selected language is stored on the Telegram user profile and is reused on later launches. Returning users do not see language selection again unless they open Settings and choose to change language.
+
+After language is selected, ATLAS either starts onboarding or shows the main menu when the life profile is already completed.
 
 Main menu actions:
 
@@ -45,3 +52,5 @@ Settings shows concise profile state:
 Telegram tokens, webhook secrets and other sensitive runtime values are never shown in Telegram settings.
 
 Profile restart is available through a confirmation step before onboarding is restarted.
+
+Settings also includes language change. Changing language edits the same ATLAS panel back to language selection, then returns to the product panel in the newly selected language.
