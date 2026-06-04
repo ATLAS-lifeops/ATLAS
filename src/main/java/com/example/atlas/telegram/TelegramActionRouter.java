@@ -12,6 +12,11 @@ import java.util.Optional;
 public class TelegramActionRouter {
 
     public static final String MENU = "atlas:menu";
+    public static final String BACK = "atlas:back";
+    public static final String CONTINUE = "atlas:continue";
+    public static final String RESTART = "atlas:restart";
+    public static final String CONFIRM = "atlas:confirm";
+    public static final String DECLINE = "atlas:decline";
     public static final String ONBOARDING_START = "atlas:onboarding:start";
     public static final String CHECKIN_START = "atlas:checkin:start";
     public static final String DAY = "atlas:day";
@@ -20,6 +25,7 @@ public class TelegramActionRouter {
     public static final String REPORT = "atlas:report";
     public static final String QUESTION_START = "atlas:question:start";
     public static final String SETTINGS = "atlas:settings";
+    public static final String PROFILE = "atlas:profile";
     public static final String HELP = "atlas:help";
     public static final String CANCEL = "atlas:cancel";
     public static final String EMERGENCY = "atlas:emergency";
@@ -43,6 +49,11 @@ public class TelegramActionRouter {
 
     private static final Map<String, TelegramAction> CALLBACK_ACTIONS = Map.ofEntries(
             Map.entry(MENU, TelegramAction.OPEN_MAIN_MENU),
+            Map.entry(BACK, TelegramAction.GO_BACK),
+            Map.entry(CONTINUE, TelegramAction.CONTINUE_FLOW),
+            Map.entry(RESTART, TelegramAction.RESTART_FLOW),
+            Map.entry(CONFIRM, TelegramAction.CONFIRM_ACTION),
+            Map.entry(DECLINE, TelegramAction.DECLINE_ACTION),
             Map.entry(ONBOARDING_START, TelegramAction.START_ONBOARDING),
             Map.entry(CHECKIN_START, TelegramAction.START_CHECKIN),
             Map.entry(DAY, TelegramAction.SHOW_DAY_PLAN),
@@ -51,6 +62,7 @@ public class TelegramActionRouter {
             Map.entry(REPORT, TelegramAction.SHOW_WEEKLY_REPORT),
             Map.entry(QUESTION_START, TelegramAction.START_QUESTION),
             Map.entry(SETTINGS, TelegramAction.OPEN_SETTINGS),
+            Map.entry(PROFILE, TelegramAction.OPEN_PROFILE),
             Map.entry(HELP, TelegramAction.SHOW_HELP),
             Map.entry(CANCEL, TelegramAction.CANCEL_FLOW),
             Map.entry(EMERGENCY, TelegramAction.SHOW_EMERGENCY_PLAN),
@@ -118,8 +130,9 @@ public class TelegramActionRouter {
             case SHOW_HELP -> RequestType.HELP;
             case CANCEL_FLOW -> RequestType.CANCEL;
             case SHOW_EMERGENCY_PLAN -> RequestType.EMERGENCY;
-            case OPEN_MAIN_MENU, START_QUESTION, OPEN_SETTINGS, CONFIRM_RESTART_ONBOARDING,
-                    CHANGE_LANGUAGE, SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> RequestType.GENERAL;
+            case OPEN_MAIN_MENU, GO_BACK, CONTINUE_FLOW, RESTART_FLOW, CONFIRM_ACTION, DECLINE_ACTION,
+                    START_QUESTION, OPEN_SETTINGS, OPEN_PROFILE, CONFIRM_RESTART_ONBOARDING, CHANGE_LANGUAGE,
+                    SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> RequestType.GENERAL;
         };
     }
 
@@ -134,8 +147,9 @@ public class TelegramActionRouter {
             case SHOW_HELP -> "/help";
             case CANCEL_FLOW -> "/cancel";
             case SHOW_EMERGENCY_PLAN -> "/emergency";
-            case OPEN_MAIN_MENU, START_QUESTION, OPEN_SETTINGS, CONFIRM_RESTART_ONBOARDING,
-                    CHANGE_LANGUAGE, SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> "";
+            case OPEN_MAIN_MENU, GO_BACK, CONTINUE_FLOW, RESTART_FLOW, CONFIRM_ACTION, DECLINE_ACTION,
+                    START_QUESTION, OPEN_SETTINGS, OPEN_PROFILE, CONFIRM_RESTART_ONBOARDING, CHANGE_LANGUAGE,
+                    SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> "";
         };
     }
 

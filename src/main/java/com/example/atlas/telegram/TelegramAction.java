@@ -2,6 +2,11 @@ package com.example.atlas.telegram;
 
 public enum TelegramAction {
     OPEN_MAIN_MENU,
+    GO_BACK,
+    CONTINUE_FLOW,
+    RESTART_FLOW,
+    CONFIRM_ACTION,
+    DECLINE_ACTION,
     START_ONBOARDING,
     SHOW_DAY_PLAN,
     START_CHECKIN,
@@ -13,6 +18,7 @@ public enum TelegramAction {
     SHOW_HELP,
     CANCEL_FLOW,
     SHOW_EMERGENCY_PLAN,
+    OPEN_PROFILE,
     CONFIRM_RESTART_ONBOARDING,
     RESTART_ONBOARDING,
     CHANGE_LANGUAGE,
