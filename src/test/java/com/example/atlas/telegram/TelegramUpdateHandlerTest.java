@@ -92,6 +92,28 @@ class TelegramUpdateHandlerTest {
         assertThat(apiClient.sentTexts()).isEmpty();
     }
 
+    @Test
+    void callbackQueryOpensMainMenuAndIsAnswered() {
+        boolean handled = handler.handleUpdate(callbackUpdate("atlas:menu"));
+
+        assertThat(handled).isTrue();
+        assertThat(apiClient.answeredCallbackIds()).containsExactly("callback-1");
+        assertThat(apiClient.sentTexts()).singleElement().asString()
+                .contains("ATLAS")
+                .contains("Что хочешь сделать сейчас");
+        assertThat(apiClient.sentMarkups()).singleElement().isNotNull();
+    }
+
+    @Test
+    void unsupportedCallbackReturnsSafeFallback() {
+        boolean handled = handler.handleUpdate(callbackUpdate("atlas:bad"));
+
+        assertThat(handled).isTrue();
+        assertThat(apiClient.answeredCallbackIds()).containsExactly("callback-1");
+        assertThat(apiClient.sentTexts()).singleElement().asString()
+                .contains("Не получилось обработать кнопку");
+    }
+
     private TelegramUpdate textUpdate(String text) {
         return new TelegramUpdate(
                 100L,
@@ -103,6 +125,25 @@ class TelegramUpdateHandlerTest {
                 ),
                 null,
                 null
+        );
+    }
+
+    private TelegramUpdate callbackUpdate(String callbackData) {
+        return new TelegramUpdate(
+                100L,
+                null,
+                null,
+                new TelegramUpdate.TelegramCallbackQuery(
+                        "callback-1",
+                        new TelegramUpdate.TelegramUser(7L, "user", "User"),
+                        new TelegramUpdate.TelegramMessage(
+                                10L,
+                                new TelegramUpdate.TelegramChat(42L),
+                                new TelegramUpdate.TelegramUser(7L, "user", "User"),
+                                null
+                        ),
+                        callbackData
+                )
         );
     }
 
@@ -121,14 +162,36 @@ class TelegramUpdateHandlerTest {
     private static class RecordingTelegramApiClient implements TelegramApiClient {
 
         private final List<String> sentTexts = new ArrayList<>();
+        private final List<InlineKeyboardMarkup> sentMarkups = new ArrayList<>();
+        private final List<String> answeredCallbackIds = new ArrayList<>();
 
         @Override
         public void sendMessage(long chatId, String text) {
             sentTexts.add(text);
+            sentMarkups.add(null);
+        }
+
+        @Override
+        public void sendMessage(long chatId, String text, InlineKeyboardMarkup replyMarkup) {
+            sentTexts.add(text);
+            sentMarkups.add(replyMarkup);
+        }
+
+        @Override
+        public void answerCallbackQuery(String callbackQueryId, String text) {
+            answeredCallbackIds.add(callbackQueryId);
         }
 
         List<String> sentTexts() {
             return sentTexts;
+        }
+
+        List<InlineKeyboardMarkup> sentMarkups() {
+            return sentMarkups;
+        }
+
+        List<String> answeredCallbackIds() {
+            return answeredCallbackIds;
         }
     }
 }

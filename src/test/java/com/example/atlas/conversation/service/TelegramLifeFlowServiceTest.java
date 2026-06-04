@@ -66,7 +66,8 @@ class TelegramLifeFlowServiceTest {
         Optional<TelegramLifeFlowService.FlowResult> result = service.handle(user, "/start", RequestType.START);
 
         assertThat(result).isPresent();
-        assertThat(result.get().content()).contains("С возвращением").contains("/checkin");
+        assertThat(result.get().content()).contains("ATLAS").contains("Что хочешь сделать сейчас");
+        assertThat(result.get().replyMarkup()).isNotNull();
     }
 
     @Test

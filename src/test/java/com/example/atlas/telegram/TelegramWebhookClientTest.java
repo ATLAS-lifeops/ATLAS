@@ -30,6 +30,7 @@ class TelegramWebhookClientTest {
                 .andExpect(jsonPath("$.secret_token").value("webhook-secret"))
                 .andExpect(jsonPath("$.drop_pending_updates").value(true))
                 .andExpect(jsonPath("$.allowed_updates[0]").value("message"))
+                .andExpect(jsonPath("$.allowed_updates[1]").value("callback_query"))
                 .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
 
         client.setWebhook(new TelegramWebhookClient.TelegramWebhookRequest(
@@ -52,6 +53,7 @@ class TelegramWebhookClientTest {
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(jsonPath("$.secret_token").doesNotExist())
                 .andExpect(jsonPath("$.allowed_updates[0]").value("message"))
+                .andExpect(jsonPath("$.allowed_updates[1]").value("callback_query"))
                 .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
 
         client.setWebhook(new TelegramWebhookClient.TelegramWebhookRequest(
