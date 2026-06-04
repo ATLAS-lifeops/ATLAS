@@ -12,13 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.client.RestClient;
 
+import java.lang.reflect.Proxy;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 class PreconfiguredTelegramStartupServiceTest {
 
@@ -90,14 +88,35 @@ class PreconfiguredTelegramStartupServiceTest {
 
     private AtlasRuntimeSettingsService settingsService(AtlasProperties properties) {
         AtomicReference<AtlasRuntimeSettingsEntity> saved = new AtomicReference<>();
-        AtlasRuntimeSettingsRepository repository = mock(AtlasRuntimeSettingsRepository.class);
-        when(repository.findFirstByOrderByCreatedAtAsc()).thenAnswer(invocation -> Optional.ofNullable(saved.get()));
-        when(repository.save(any(AtlasRuntimeSettingsEntity.class))).thenAnswer(invocation -> {
-            AtlasRuntimeSettingsEntity entity = invocation.getArgument(0);
-            saved.set(entity);
-            return entity;
-        });
+        AtlasRuntimeSettingsRepository repository = repository(saved);
         return new AtlasRuntimeSettingsService(properties, provider(repository));
+    }
+
+    private AtlasRuntimeSettingsRepository repository(AtomicReference<AtlasRuntimeSettingsEntity> saved) {
+        return (AtlasRuntimeSettingsRepository) Proxy.newProxyInstance(
+                AtlasRuntimeSettingsRepository.class.getClassLoader(),
+                new Class<?>[]{AtlasRuntimeSettingsRepository.class},
+                (proxy, method, args) -> {
+                    if ("findFirstByOrderByCreatedAtAsc".equals(method.getName())) {
+                        return Optional.ofNullable(saved.get());
+                    }
+                    if ("save".equals(method.getName())) {
+                        AtlasRuntimeSettingsEntity entity = (AtlasRuntimeSettingsEntity) args[0];
+                        saved.set(entity);
+                        return entity;
+                    }
+                    if ("toString".equals(method.getName())) {
+                        return "InMemoryAtlasRuntimeSettingsRepository";
+                    }
+                    if ("hashCode".equals(method.getName())) {
+                        return System.identityHashCode(proxy);
+                    }
+                    if ("equals".equals(method.getName())) {
+                        return proxy == args[0];
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                }
+        );
     }
 
     private AtlasProperties properties(String botToken) {

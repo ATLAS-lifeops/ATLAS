@@ -16,6 +16,7 @@ import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.safety.SafetyGuard;
 import com.example.atlas.user.entity.TelegramUserEntity;
+import com.example.atlas.user.UserLanguage;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
@@ -140,8 +141,130 @@ class TelegramLifeFlowServiceTest {
                 .contains("Недельный отчёт");
     }
 
+    @Test
+    void startWithActiveFlowShowsContinuationPanel() {
+        profile.completeOnboarding(Instant.parse("2026-05-27T10:01:00Z"));
+        conversationStateService.active = state(ConversationFlowType.DAILY_CHECKIN, "ASK_FOCUS");
+
+        Optional<TelegramLifeFlowService.FlowResult> result = service.handle(user, "/start", RequestType.START);
+
+        assertThat(result).isPresent();
+        assertThat(result.get().content()).contains("незавершённый сценарий");
+        assertThat(callbacks(result.get())).contains("atlas:continue", "atlas:restart", "atlas:cancel", "atlas:menu");
+        assertThat(conversationStateService.active(user)).isPresent();
+    }
+
+    @Test
+    void continueActiveFlowRestoresCurrentPrompt() {
+        user.updateLanguage(UserLanguage.EN);
+        conversationStateService.active = state(ConversationFlowType.DAILY_CHECKIN, "ASK_FOCUS");
+
+        TelegramLifeFlowService.FlowResult result = service.continueActiveFlow(user);
+
+        assertThat(result.content()).contains("Rate your focus");
+        assertThat(callbacks(result)).contains("atlas:back", "atlas:cancel", "atlas:menu");
+    }
+
+    @Test
+    void backMovesToPreviousSafeStepAndRemovesLastAnswer() {
+        conversationStateService.active = state(ConversationFlowType.DAILY_CHECKIN, "ASK_STRESS");
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("energy", "7");
+        payload.put("focus", "6");
+        conversationStateService.payloads.put(conversationStateService.active, payload);
+
+        TelegramLifeFlowService.FlowResult result = service.back(user);
+
+        assertThat(result.content()).contains("Оцени фокус");
+        assertThat(conversationStateService.active.getStep()).isEqualTo("ASK_FOCUS");
+        assertThat(conversationStateService.payloads.get(conversationStateService.active))
+                .containsEntry("energy", "7")
+                .doesNotContainKey("focus");
+    }
+
+    @Test
+    void firstStepBackShowsSafeFallback() {
+        conversationStateService.active = state(ConversationFlowType.DAILY_CHECKIN, "ASK_ENERGY");
+
+        TelegramLifeFlowService.FlowResult result = service.back(user);
+
+        assertThat(result.content()).contains("Назад здесь недоступно");
+        assertThat(conversationStateService.active.getStep()).isEqualTo("ASK_ENERGY");
+    }
+
+    @Test
+    void restartActiveFlowRequiresConfirmationAndThenRestarts() {
+        conversationStateService.active = state(ConversationFlowType.EVENING_REFLECTION, "ASK_TOMORROW_FOCUS");
+
+        TelegramLifeFlowService.FlowResult confirmation = service.restartActiveFlowConfirmation(user);
+        TelegramLifeFlowService.FlowResult restarted = service.restartActiveFlow(user);
+
+        assertThat(confirmation.content()).contains("Начать этот сценарий заново");
+        assertThat(callbacks(confirmation)).contains("atlas:confirm", "atlas:decline");
+        assertThat(restarted.content()).contains("Что сегодня получилось");
+        assertThat(conversationStateService.active.getStep()).isEqualTo("ASK_MAIN_RESULT");
+    }
+
+    @Test
+    void settingsAndProfileDoNotExposeSecretsOrIds() {
+        profile.updatePrimaryLifeArea(LifeArea.FOCUS, Instant.parse("2026-05-27T10:01:00Z"));
+        profile.updateCurrentFocus("Собрать рабочий день", Instant.parse("2026-05-27T10:02:00Z"));
+        profile.updatePlanningStyle(PlanningStyle.BALANCED, Instant.parse("2026-05-27T10:03:00Z"));
+        profile.completeOnboarding(Instant.parse("2026-05-27T10:04:00Z"));
+
+        String settings = service.settings(user);
+        TelegramLifeFlowService.FlowResult profilePanel = service.profile(user);
+
+        assertThat(settings)
+                .contains("⚙️ Настройки")
+                .contains("Секреты Telegram здесь не показываются")
+                .doesNotContain("token")
+                .doesNotContain("webhook")
+                .doesNotContain(user.getId().toString());
+        assertThat(profilePanel.content())
+                .contains("🧭 Профиль ATLAS")
+                .contains("Текущий фокус: Собрать рабочий день")
+                .doesNotContain(user.getId().toString());
+    }
+
+    @Test
+    void reportWithoutDataShowsEmptyState() {
+        FakeWeeklyReportService reportService = new FakeWeeklyReportService(lifeProfileService, habitService, reflectionService) {
+            @Override
+            public boolean hasUsefulData(TelegramUserEntity user) {
+                return false;
+            }
+        };
+        TelegramLifeFlowService emptyReportService = service(reportService);
+
+        TelegramLifeFlowService.FlowResult result = emptyReportService.handle(user, "/report", RequestType.REPORT).orElseThrow();
+
+        assertThat(result.content()).contains("Пока мало данных для отчёта");
+        assertThat(callbacks(result)).contains("atlas:checkin:start", "atlas:day", "atlas:menu");
+    }
+
     private ConversationStateEntity state(ConversationFlowType flowType, String step) {
         return ConversationStateEntity.active(user, flowType, step, "{}", Instant.parse("2026-05-27T10:00:00Z"));
+    }
+
+    private TelegramLifeFlowService service(WeeklyLifeReportService weeklyReportService) {
+        return new TelegramLifeFlowService(
+                conversationStateService,
+                lifeProfileService,
+                checkInPersistenceService,
+                habitService,
+                reflectionService,
+                dayPlanService,
+                weeklyReportService,
+                new SafetyGuard()
+        );
+    }
+
+    private java.util.List<String> callbacks(TelegramLifeFlowService.FlowResult result) {
+        return result.replyMarkup().inlineKeyboard().stream()
+                .flatMap(java.util.Collection::stream)
+                .map(button -> button.callbackData())
+                .toList();
     }
 
     private static class FakeConversationStateService extends ConversationStateService {
@@ -206,6 +329,11 @@ class TelegramLifeFlowServiceTest {
         @Override
         public LifeProfileEntity getOrCreate(TelegramUserEntity user) {
             return profile;
+        }
+
+        @Override
+        public Optional<LifeProfileEntity> find(TelegramUserEntity user) {
+            return Optional.of(profile);
         }
     }
 

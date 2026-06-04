@@ -7,6 +7,7 @@ import com.example.atlas.agent.habits.HabitsAgent;
 import com.example.atlas.agent.planner.PlannerAgent;
 import com.example.atlas.agent.recovery.RecoveryAgent;
 import com.example.atlas.agent.report.ReportAgent;
+import com.example.atlas.conversation.service.TelegramLifeFlowService;
 import com.example.atlas.orchestrator.OrchestratorService;
 import com.example.atlas.safety.SafetyGuard;
 import com.example.atlas.user.UserLanguage;
@@ -107,6 +108,24 @@ class TelegramUpdateHandlerTest {
                 .contains("ATLAS")
                 .contains("Что хочешь сделать сейчас");
         assertThat(apiClient.editedMarkups()).singleElement().isNotNull();
+    }
+
+    @Test
+    void menuCallbackWithActiveFlowOpensMenuWithoutCancellingFlow() {
+        RecordingTelegramApiClient client = new RecordingTelegramApiClient();
+        FakeTelegramUserService userService = new FakeTelegramUserService();
+        userService.user().updateLanguage(UserLanguage.RU);
+        FakeActiveLifeFlowService lifeFlowService = new FakeActiveLifeFlowService();
+        TelegramUpdateHandler activeFlowHandler = handler(client, userService, lifeFlowService);
+
+        boolean handled = activeFlowHandler.handleUpdate(callbackUpdate("atlas:menu"));
+
+        assertThat(handled).isTrue();
+        assertThat(client.editedCaptions()).singleElement().asString()
+                .contains("ATLAS")
+                .contains("Что хочешь сделать сейчас");
+        assertThat(lifeFlowService.active).isTrue();
+        assertThat(client.answeredCallbackIds()).containsExactly("callback-1");
     }
 
     @Test
@@ -250,13 +269,21 @@ class TelegramUpdateHandlerTest {
     }
 
     private TelegramUpdateHandler handler(RecordingTelegramApiClient client, TelegramUserService userService) {
+        return handler(client, userService, null);
+    }
+
+    private TelegramUpdateHandler handler(
+            RecordingTelegramApiClient client,
+            TelegramUserService userService,
+            TelegramLifeFlowService lifeFlowService
+    ) {
         return new TelegramUpdateHandler(
                 orchestratorService(),
                 new TelegramMessageSender(client),
                 new SafetyGuard(),
                 provider(userService),
                 provider(null),
-                provider(null),
+                provider(lifeFlowService),
                 new TelegramActionRouter(),
                 new TelegramKeyboardFactory()
         );
@@ -410,6 +437,20 @@ class TelegramUpdateHandlerTest {
 
         TelegramUserEntity user() {
             return user;
+        }
+    }
+
+    private static class FakeActiveLifeFlowService extends TelegramLifeFlowService {
+
+        private boolean active = true;
+
+        FakeActiveLifeFlowService() {
+            super(null, null, null, null, null, null, null, null);
+        }
+
+        @Override
+        public boolean hasActiveFlow(TelegramUserEntity user) {
+            return active;
         }
     }
 }
