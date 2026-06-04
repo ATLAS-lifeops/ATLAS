@@ -2,6 +2,8 @@
 
 ATLAS supports both inline buttons and text commands in Telegram. Buttons are the primary user-facing path, while commands remain available for power users and text-only clients.
 
+The `/clear` command deletes the command message when Telegram allows it and opens a fresh ATLAS panel. Telegram does not expose a bot API for clearing the user's entire private chat history.
+
 ## Main Menu
 
 After `/start`, ATLAS first asks new users to choose a language. The language selection panel uses inline buttons:

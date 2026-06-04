@@ -130,6 +130,16 @@ class TelegramUpdateHandlerTest {
     }
 
     @Test
+    void clearCommandDeletesCommandMessageAndShowsFreshPanel() {
+        boolean handled = handler.handleUpdate(textUpdate("/clear"));
+
+        assertThat(handled).isTrue();
+        assertThat(apiClient.deletedMessages()).containsExactly("42:10");
+        assertThat(apiClient.sentPhotoCaptions()).singleElement().asString()
+                .contains("Что хочешь сделать сейчас");
+    }
+
+    @Test
     void menuCallbackFallsBackToNewPanelWhenCaptionEditFails() {
         RecordingTelegramApiClient client = new RecordingTelegramApiClient();
         client.failEdits();
@@ -177,6 +187,7 @@ class TelegramUpdateHandlerTest {
         assertThat(client.editedCaptions()).singleElement().asString()
                 .contains("What would you like to do now?");
         assertThat(client.answeredCallbackIds()).containsExactly("callback-1");
+        assertThat(client.answeredCallbackTexts()).containsExactly("Language saved");
     }
 
     @Test
@@ -284,6 +295,8 @@ class TelegramUpdateHandlerTest {
         private final List<String> editedCaptions = new ArrayList<>();
         private final List<InlineKeyboardMarkup> editedMarkups = new ArrayList<>();
         private final List<String> answeredCallbackIds = new ArrayList<>();
+        private final List<String> answeredCallbackTexts = new ArrayList<>();
+        private final List<String> deletedMessages = new ArrayList<>();
         private boolean failEdits;
 
         @Override
@@ -316,6 +329,12 @@ class TelegramUpdateHandlerTest {
         @Override
         public void answerCallbackQuery(String callbackQueryId, String text) {
             answeredCallbackIds.add(callbackQueryId);
+            answeredCallbackTexts.add(text);
+        }
+
+        @Override
+        public void deleteMessage(long chatId, long messageId) {
+            deletedMessages.add(chatId + ":" + messageId);
         }
 
         List<String> sentTexts() {
@@ -344,6 +363,14 @@ class TelegramUpdateHandlerTest {
 
         List<String> answeredCallbackIds() {
             return answeredCallbackIds;
+        }
+
+        List<String> answeredCallbackTexts() {
+            return answeredCallbackTexts;
+        }
+
+        List<String> deletedMessages() {
+            return deletedMessages;
         }
 
         void failEdits() {

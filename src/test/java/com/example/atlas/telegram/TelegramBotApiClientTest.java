@@ -82,6 +82,24 @@ class TelegramBotApiClientTest {
         server.verify();
     }
 
+    @Test
+    void deleteMessageSendsTelegramRequest() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TelegramBotApiClient client = new TelegramBotApiClient(properties(), noRuntimeSettings(), builder);
+
+        server.expect(once(), requestTo("https://api.telegram.org/bottest-token/deleteMessage"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.chat_id").value(42))
+                .andExpect(jsonPath("$.message_id").value(10))
+                .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+        client.deleteMessage(42L, 10L);
+
+        server.verify();
+    }
+
     private AtlasProperties properties() {
         return new AtlasProperties(new AtlasProperties.Telegram(
                 true,

@@ -107,6 +107,18 @@ public class TelegramUpdateHandler {
         TelegramUserEntity user = upsertUser(message);
         recordIncoming(user, message.chat().id(), requestType, message.text());
 
+        if (requestType == RequestType.CLEAR) {
+            handleClear(message, user);
+            log.info(
+                    "Telegram update handled: update_id={}, chat_id={}, handled={}, request_type={}",
+                    updateId(update),
+                    message.chat().id(),
+                    true,
+                    requestType
+            );
+            return true;
+        }
+
         if (shouldAskLanguage(user, message.text())) {
             RoutedResponse language = languageSelection();
             messageSender.sendPanel(message.chat().id(), language.content(), language.replyMarkup());
@@ -169,7 +181,7 @@ public class TelegramUpdateHandler {
             messageSender.sendText(chatId, response.content(), response.replyMarkup());
         }
         recordOutgoing(user, chatId, response.requestType(), response.content());
-        answerCallback(callbackQuery.id(), null);
+        answerCallback(callbackQuery.id(), callbackAnswer(callbackData));
         log.info(
                 "Telegram callback handled: update_id={}, telegram_user_id={}, action={}, handled={}",
                 updateId(update),
@@ -291,7 +303,7 @@ public class TelegramUpdateHandler {
                     Use the buttons for the main flows:
                     check-in, day plan, habits, evening reflection, report, minimal plan and settings.
 
-                    Commands also work: /start, /checkin, /day, /habits, /evening, /report, /cancel, /emergency.
+                    Commands also work: /start, /checkin, /day, /habits, /evening, /report, /cancel, /clear, /emergency.
                     """,
                     RequestType.HELP,
                     keyboardFactory.help(language),
@@ -304,7 +316,7 @@ public class TelegramUpdateHandler {
 
                 Основной путь - кнопки: check-in, план дня, привычки, вечерняя рефлексия, отчёт, минимальный план и настройки.
 
-                Команды тоже работают: /start, /checkin, /day, /habits, /evening, /report, /cancel, /emergency.
+                Команды тоже работают: /start, /checkin, /day, /habits, /evening, /report, /cancel, /clear, /emergency.
                 """,
                 RequestType.HELP,
                 keyboardFactory.help(language),
@@ -370,6 +382,19 @@ public class TelegramUpdateHandler {
         return mainMenu(updated == null ? user : updated);
     }
 
+    private void handleClear(TelegramUpdate.TelegramMessage message, TelegramUserEntity user) {
+        if (message.messageId() != null) {
+            messageSender.deleteMessage(message.chat().id(), message.messageId());
+        }
+        TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
+        if (service != null && user != null) {
+            service.handle(user, "/cancel", RequestType.CANCEL);
+        }
+        RoutedResponse response = user != null && language(user).isEmpty() ? languageSelection() : mainMenu(user);
+        messageSender.sendPanel(message.chat().id(), response.content(), response.replyMarkup());
+        recordOutgoing(user, message.chat().id(), response.requestType(), response.content());
+    }
+
     private TelegramUserEntity upsertUser(TelegramUpdate.TelegramMessage message) {
         TelegramUserService service = userService == null ? null : userService.getIfAvailable();
         return service == null ? null : service.upsertFromMessage(message);
@@ -425,6 +450,16 @@ public class TelegramUpdateHandler {
 
     private boolean isLanguageCallback(String callbackData) {
         return TelegramActionRouter.LANGUAGE_RU.equals(callbackData) || TelegramActionRouter.LANGUAGE_EN.equals(callbackData);
+    }
+
+    private String callbackAnswer(String callbackData) {
+        if (TelegramActionRouter.LANGUAGE_RU.equals(callbackData)) {
+            return "Язык сохранён";
+        }
+        if (TelegramActionRouter.LANGUAGE_EN.equals(callbackData)) {
+            return "Language saved";
+        }
+        return null;
     }
 
     private java.util.Optional<UserLanguage> language(TelegramUserEntity user) {

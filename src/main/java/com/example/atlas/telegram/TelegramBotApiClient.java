@@ -126,6 +126,20 @@ public class TelegramBotApiClient implements TelegramApiClient {
     }
 
     @Override
+    public void deleteMessage(long chatId, long messageId) {
+        TelegramApiResponse response = restClient()
+                .post()
+                .uri("/deleteMessage")
+                .body(Map.of("chat_id", chatId, "message_id", messageId))
+                .retrieve()
+                .body(TelegramApiResponse.class);
+
+        if (response == null || !response.ok()) {
+            throw new TelegramApiException("Telegram deleteMessage was rejected by Telegram API.");
+        }
+    }
+
+    @Override
     public void deleteWebhook(boolean dropPendingUpdates) {
         TelegramApiResponse response = restClient()
                 .post()

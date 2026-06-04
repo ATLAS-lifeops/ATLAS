@@ -14,5 +14,6 @@ public enum RequestType {
     EMERGENCY,
     HELP,
     CANCEL,
+    CLEAR,
     GENERAL
 }

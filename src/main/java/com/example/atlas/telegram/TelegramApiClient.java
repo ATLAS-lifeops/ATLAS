@@ -22,6 +22,10 @@ public interface TelegramApiClient {
         throw new UnsupportedOperationException("Telegram answerCallbackQuery is not supported by this client.");
     }
 
+    default void deleteMessage(long chatId, long messageId) {
+        throw new UnsupportedOperationException("Telegram deleteMessage is not supported by this client.");
+    }
+
     default List<TelegramUpdate> getUpdates(long offset, int timeoutSeconds) {
         throw new UnsupportedOperationException("Telegram getUpdates is not supported by this client.");
     }

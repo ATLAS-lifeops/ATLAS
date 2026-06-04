@@ -77,6 +77,7 @@ public class OrchestratorService {
             case "/emergency" -> RequestType.EMERGENCY;
             case "/help" -> RequestType.HELP;
             case "/cancel" -> RequestType.CANCEL;
+            case "/clear" -> RequestType.CLEAR;
             default -> RequestType.GENERAL;
         };
     }

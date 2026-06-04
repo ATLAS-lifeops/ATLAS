@@ -120,6 +120,22 @@ public class TelegramMessageSender {
         telegramApiClient.answerCallbackQuery(callbackQueryId, text);
     }
 
+    public boolean deleteMessage(long chatId, long messageId) {
+        try {
+            telegramApiClient.deleteMessage(chatId, messageId);
+            log.info("Telegram deleteMessage succeeded: chat_id={}, message_id={}", chatId, messageId);
+            return true;
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Telegram deleteMessage failed: chat_id={}, message_id={}, error_type={}",
+                    chatId,
+                    messageId,
+                    exception.getClass().getSimpleName()
+            );
+            return false;
+        }
+    }
+
     private int findSplitBoundary(String text, int start, int end) {
         int paragraphBoundary = text.lastIndexOf("\n\n", end);
         if (paragraphBoundary > start) {

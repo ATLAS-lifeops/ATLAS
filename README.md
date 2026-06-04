@@ -44,6 +44,7 @@
 /food
 /report
 /cancel
+/clear
 /help
 /emergency
 ```
