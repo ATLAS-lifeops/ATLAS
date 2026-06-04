@@ -51,6 +51,40 @@ public class TelegramBotApiClient implements TelegramApiClient {
     }
 
     @Override
+    public void sendPhoto(long chatId, String photo, String caption, InlineKeyboardMarkup replyMarkup) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("chat_id", chatId);
+        body.put("photo", photo);
+        body.put("caption", caption);
+        if (replyMarkup != null) {
+            body.put("reply_markup", replyMarkup);
+        }
+        restClient()
+                .post()
+                .uri("/sendPhoto")
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    @Override
+    public void editMessageCaption(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("chat_id", chatId);
+        body.put("message_id", messageId);
+        body.put("caption", caption);
+        if (replyMarkup != null) {
+            body.put("reply_markup", replyMarkup);
+        }
+        restClient()
+                .post()
+                .uri("/editMessageCaption")
+                .body(body)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    @Override
     public List<TelegramUpdate> getUpdates(long offset, int timeoutSeconds) {
         TelegramGetUpdatesResponse response = restClient()
                 .get()

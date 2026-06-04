@@ -10,6 +10,14 @@ public interface TelegramApiClient {
         sendMessage(chatId, text);
     }
 
+    default void sendPhoto(long chatId, String photo, String caption, InlineKeyboardMarkup replyMarkup) {
+        sendMessage(chatId, caption, replyMarkup);
+    }
+
+    default void editMessageCaption(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
+        sendMessage(chatId, caption, replyMarkup);
+    }
+
     default void answerCallbackQuery(String callbackQueryId, String text) {
         throw new UnsupportedOperationException("Telegram answerCallbackQuery is not supported by this client.");
     }

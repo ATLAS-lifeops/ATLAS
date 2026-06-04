@@ -11,6 +11,7 @@ import java.util.List;
 public class TelegramMessageSender {
 
     static final int MAX_TEXT_CHUNK_SIZE = 3900;
+    static final String ATLAS_PANEL_PHOTO = "https://raw.githubusercontent.com/ATLAS-lifeops/ATLAS/main/docs/assets/logo.png";
 
     private static final Logger log = LoggerFactory.getLogger(TelegramMessageSender.class);
 
@@ -48,6 +49,41 @@ public class TelegramMessageSender {
                         exception.getClass().getSimpleName()
                 );
             }
+        }
+    }
+
+    public void sendPanel(long chatId, String caption, InlineKeyboardMarkup replyMarkup) {
+        try {
+            telegramApiClient.sendPhoto(chatId, ATLAS_PANEL_PHOTO, caption, replyMarkup);
+            log.info("Telegram sendPhoto panel succeeded: chat_id={}, reply_markup_present={}", chatId, replyMarkup != null);
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Telegram sendPhoto panel failed: chat_id={}, reply_markup_present={}, error_type={}",
+                    chatId,
+                    replyMarkup != null,
+                    exception.getClass().getSimpleName()
+            );
+            sendText(chatId, caption, replyMarkup);
+        }
+    }
+
+    public void editPanel(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
+        try {
+            telegramApiClient.editMessageCaption(chatId, messageId, caption, replyMarkup);
+            log.info(
+                    "Telegram editMessageCaption succeeded: chat_id={}, message_id={}, reply_markup_present={}",
+                    chatId,
+                    messageId,
+                    replyMarkup != null
+            );
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Telegram editMessageCaption failed: chat_id={}, message_id={}, reply_markup_present={}, error_type={}",
+                    chatId,
+                    messageId,
+                    replyMarkup != null,
+                    exception.getClass().getSimpleName()
+            );
         }
     }
 
