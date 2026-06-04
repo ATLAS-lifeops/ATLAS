@@ -11,7 +11,7 @@ import java.util.List;
 public class TelegramMessageSender {
 
     static final int MAX_TEXT_CHUNK_SIZE = 3900;
-    static final String ATLAS_PANEL_PHOTO = "https://raw.githubusercontent.com/ATLAS-lifeops/ATLAS/main/docs/assets/logo.png";
+    static final String ATLAS_PANEL_PHOTO = "https://raw.githubusercontent.com/ATLAS-lifeops/ATLAS/main/assets/logo.png";
 
     private static final Logger log = LoggerFactory.getLogger(TelegramMessageSender.class);
 
