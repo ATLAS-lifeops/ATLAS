@@ -18,6 +18,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
@@ -47,8 +48,15 @@ public class SetupPageController {
     }
 
     @GetMapping("/setup")
-    public ResponseEntity<String> setup() {
-        return html(setupPage(null, runtimeSettingsService.status()));
+    public ResponseEntity<String> setup(@RequestParam(name = "edit", defaultValue = "false") boolean edit) {
+        RuntimeSettingsStatus status = runtimeSettingsService.status();
+        if (status.setupError() != null && !status.setupError().isBlank()) {
+            return html(setupPage(status.setupError(), status));
+        }
+        if (!edit && status.telegramConfigured()) {
+            return html(statusPage(status));
+        }
+        return html(setupPage(null, status));
     }
 
     @PostMapping("/setup")
@@ -70,7 +78,7 @@ public class SetupPageController {
                     service.registerConfiguredWebhook();
                 }
             }
-            return html(successPage(runtimeSettingsService.status()));
+            return html(statusPage(runtimeSettingsService.status()));
         } catch (IllegalArgumentException exception) {
             return html(setupPage("Launch mode must be Simple local launch or Production webhook.", runtimeSettingsService.status()));
         } catch (IllegalStateException exception) {
@@ -112,7 +120,9 @@ public class SetupPageController {
                     main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
                     section { width: min(100%%, 520px); background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 28px; box-shadow: 0 8px 28px rgba(23,32,42,.08); }
                     h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: 0; }
-                    p { margin: 0 0 20px; color: #536471; line-height: 1.5; }
+                    p { margin: 0 0 16px; color: #536471; line-height: 1.5; }
+                    .mode-copy { margin: 14px 0; padding: 12px; background: #f7f9fb; border: 1px solid #d8dee4; border-radius: 6px; }
+                    .mode-copy strong { display: block; margin-bottom: 4px; color: #17202a; }
                     label { display: block; margin: 16px 0 6px; font-weight: 700; }
                     input, select { box-sizing: border-box; width: 100%%; padding: 11px 12px; border: 1px solid #c8d0d8; border-radius: 6px; font: inherit; }
                     button { margin-top: 22px; width: 100%%; border: 0; border-radius: 6px; padding: 12px 14px; background: #1565c0; color: #fff; font-weight: 700; font: inherit; cursor: pointer; }
@@ -129,12 +139,29 @@ public class SetupPageController {
                     <section>
                       <h1>ATLAS</h1>
                       <p>Connect your Telegram bot and choose how ATLAS should receive Telegram updates.</p>
+                      <div class="mode-copy">
+                        <strong>Simple local launch</strong>
+                        Best for local Docker Compose usage. ATLAS reads Telegram messages through polling. No domain or HTTPS required.
+                      </div>
+                      <div class="mode-copy">
+                        <strong>Простой локальный запуск</strong>
+                        Лучший вариант для локального запуска через Docker Compose. ATLAS сам забирает сообщения из Telegram через polling. Домен и HTTPS не нужны.
+                      </div>
+                      <div class="mode-copy">
+                        <strong>Production webhook</strong>
+                        For a server with a public HTTPS URL. Telegram will send updates to your webhook URL.
+                      </div>
+                      <div class="mode-copy">
+                        <strong>Production webhook</strong>
+                        Для сервера с публичным HTTPS-адресом. Telegram будет отправлять события на webhook URL.
+                      </div>
                       %s
                       %s
                       <form method="post" action="/setup">
                         <label for="botToken">Telegram Bot Token</label>
                         <input id="botToken" name="botToken" type="password" autocomplete="off" required>
-                        <div class="hint">Paste the token from BotFather. It will not be shown again.</div>
+                        <div class="hint">No bot yet? Create one with BotFather and paste the token here.</div>
+                        <div class="hint">Нет бота? Создай его через BotFather и вставь token здесь.</div>
 
                         <label for="botUsername">Telegram Bot Username</label>
                         <input id="botUsername" name="botUsername" type="text" autocomplete="off" placeholder="Optional">
@@ -146,8 +173,8 @@ public class SetupPageController {
                         </select>
 
                         <div id="webhookFields" class="webhook-fields">
-                          <label for="publicBaseUrl">Public Base URL</label>
-                          <input id="publicBaseUrl" name="publicBaseUrl" type="url" placeholder="https://example.com">
+                          <label for="publicBaseUrl">Webhook URL</label>
+                          <input id="publicBaseUrl" name="publicBaseUrl" type="url" placeholder="https://example.com/telegram/webhook">
 
                           <label for="webhookSecret">Webhook Secret</label>
                           <input id="webhookSecret" name="webhookSecret" type="password" autocomplete="off">
@@ -172,15 +199,20 @@ public class SetupPageController {
     }
 
     public static String successPage(RuntimeSettingsStatus status) {
+        return statusPage(status);
+    }
+
+    public static String statusPage(RuntimeSettingsStatus status) {
         String mode = status.telegramMode() == null ? "Not configured" : status.telegramMode().name();
         String username = status.botUsername() == null ? "Not configured" : escape(status.botUsername());
+        String displayMode = "POLLING".equals(mode) ? "Polling" : escape(mode);
         return """
                 <!doctype html>
                 <html lang="en">
                 <head>
                   <meta charset="utf-8">
                   <meta name="viewport" content="width=device-width, initial-scale=1">
-                  <title>ATLAS Setup Saved</title>
+                  <title>ATLAS Status</title>
                   <style>
                     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
                     main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
@@ -195,24 +227,32 @@ public class SetupPageController {
                 <body>
                   <main>
                     <section>
-                      <h1>Setup saved</h1>
-                      <p>ATLAS saved the Telegram setup. Open Telegram and send <strong>/start</strong> to your bot.</p>
+                      <h1>ATLAS is running</h1>
                       <dl>
+                        <dt>Telegram bot</dt><dd>@%s</dd>
                         <dt>Mode</dt><dd>%s</dd>
-                        <dt>Bot username</dt><dd>%s</dd>
-                        <dt>Token</dt><dd>%s</dd>
-                        <dt>Webhook</dt><dd>%s</dd>
+                        <dt>Status</dt><dd>%s</dd>
                       </dl>
-                      <p><a href="/setup">Edit setup</a></p>
+                      <p>Open Telegram and send <strong>/start</strong>.</p>
+                      <h1>ATLAS запущен</h1>
+                      <dl>
+                        <dt>Telegram bot</dt><dd>@%s</dd>
+                        <dt>Режим</dt><dd>%s</dd>
+                        <dt>Статус</dt><dd>%s</dd>
+                      </dl>
+                      <p>Открой Telegram и напиши <strong>/start</strong>.</p>
+                      <p><a href="/setup?edit=true">Edit setup</a></p>
                     </section>
                   </main>
                 </body>
                 </html>
                 """.formatted(
-                escape(mode),
                 username,
-                status.tokenConfigured() ? "Configured" : "Not configured",
-                status.webhookConfigured() ? "Configured" : "Not configured"
+                displayMode,
+                escape(status.adapterStatus()),
+                username,
+                displayMode,
+                status.telegramConfigured() ? "Активен" : escape(status.adapterStatus())
         );
     }
 

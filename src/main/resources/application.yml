@@ -29,7 +29,9 @@ atlas:
     enabled: ${ATLAS_TELEGRAM_ENABLED:false}
     bot-token: ${ATLAS_TELEGRAM_BOT_TOKEN:}
     bot-username: ${ATLAS_TELEGRAM_BOT_USERNAME:}
+    mode: ${ATLAS_TELEGRAM_MODE:polling}
     webhook-path: ${ATLAS_TELEGRAM_WEBHOOK_PATH:/telegram/webhook}
+    webhook-url: ${ATLAS_TELEGRAM_WEBHOOK_URL:}
     webhook-secret: ${ATLAS_TELEGRAM_WEBHOOK_SECRET:}
     public-base-url: ${ATLAS_PUBLIC_BASE_URL:}
     register-webhook-on-startup: ${ATLAS_TELEGRAM_REGISTER_WEBHOOK_ON_STARTUP:false}

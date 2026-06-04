@@ -18,6 +18,8 @@ public class AtlasRuntimeSettingsService {
     private final AtlasProperties properties;
     private final ObjectProvider<AtlasRuntimeSettingsRepository> repository;
     private final Clock clock;
+    private volatile boolean environmentTelegramConfigAccepted;
+    private volatile String setupError;
 
     @Autowired
     public AtlasRuntimeSettingsService(
@@ -35,24 +37,32 @@ public class AtlasRuntimeSettingsService {
         this.properties = properties;
         this.repository = repository;
         this.clock = clock;
+        this.environmentTelegramConfigAccepted = !properties.telegram().hasBotToken();
     }
 
     @Transactional(readOnly = true)
     public boolean isSetupCompleted() {
-        return currentSettingsOrNull() != null && currentSettingsOrNull().isSetupCompleted();
+        AtlasRuntimeSettingsEntity settings = currentSettingsOrNull();
+        return settings != null && settings.isSetupCompleted();
     }
 
     @Transactional(readOnly = true)
     public RuntimeSettingsStatus status() {
         EffectiveTelegramConfig config = effectiveTelegramConfig();
+        boolean setupCompleted = isSetupCompleted();
+        boolean telegramConfigured = config.configured() && config.hasBotToken();
+        LocalLaunchState state = state(setupCompleted, telegramConfigured, config);
         return new RuntimeSettingsStatus(
-                isSetupCompleted(),
+                !setupCompleted && !telegramConfigured,
+                setupCompleted,
+                telegramConfigured,
                 config.mode(),
                 blankToNull(config.botUsername()),
+                state,
+                adapterStatus(state),
                 config.hasBotToken(),
                 config.isWebhookMode() && config.hasPublicBaseUrl() && config.hasWebhookSecret(),
-                mask(config.botToken()),
-                mask(config.webhookSecret())
+                setupError
         );
     }
 
@@ -61,13 +71,27 @@ public class AtlasRuntimeSettingsService {
         AtlasRuntimeSettingsEntity settings = currentSettingsOrNull();
         AtlasProperties.Telegram telegram = properties.telegram();
 
-        String botToken = firstNonBlank(telegram.botToken(), settings == null ? null : settings.getTelegramBotToken());
-        String botUsername = firstNonBlank(telegram.botUsername(), settings == null ? null : settings.getTelegramBotUsername());
-        String publicBaseUrl = firstNonBlank(telegram.publicBaseUrl(), settings == null ? null : settings.getTelegramPublicBaseUrl());
-        String webhookSecret = firstNonBlank(telegram.webhookSecret(), settings == null ? null : settings.getTelegramWebhookSecret());
-        TelegramLaunchMode mode = resolveMode(telegram, settings);
         boolean setupCompleted = settings != null && settings.isSetupCompleted();
-        boolean enabled = telegram.enabled() || setupCompleted;
+        boolean allowEnvironmentConfig = telegram.hasBotToken() && environmentTelegramConfigAccepted && setupError == null;
+
+        String botToken = firstNonBlank(
+                setupCompleted ? settings.getTelegramBotToken() : null,
+                allowEnvironmentConfig ? telegram.botToken() : null
+        );
+        String botUsername = firstNonBlank(
+                setupCompleted ? settings.getTelegramBotUsername() : null,
+                allowEnvironmentConfig ? telegram.botUsername() : null
+        );
+        String publicBaseUrl = firstNonBlank(
+                setupCompleted ? settings.getTelegramPublicBaseUrl() : null,
+                allowEnvironmentConfig ? telegram.effectiveWebhookUrl() : null
+        );
+        String webhookSecret = firstNonBlank(
+                setupCompleted ? settings.getTelegramWebhookSecret() : null,
+                allowEnvironmentConfig ? telegram.webhookSecret() : null
+        );
+        TelegramLaunchMode mode = resolveMode(telegram, settings);
+        boolean enabled = telegram.enabled() || setupCompleted || allowEnvironmentConfig;
         boolean configured = enabled && botToken != null && mode != null;
 
         return new EffectiveTelegramConfig(
@@ -100,11 +124,29 @@ public class AtlasRuntimeSettingsService {
                 botToken.strip(),
                 stripToNull(botUsername),
                 mode,
-                stripToNull(publicBaseUrl),
+                normalizeWebhookUrl(stripToNull(publicBaseUrl), properties.telegram().webhookPath()),
                 stripToNull(webhookSecret),
                 Instant.now(clock)
         );
+        this.setupError = null;
+        this.environmentTelegramConfigAccepted = true;
         return requireRepository().save(settings);
+    }
+
+    public boolean hasPersistence() {
+        return repository.getIfAvailable() != null;
+    }
+
+    public void markEnvironmentTelegramConfigAccepted() {
+        this.environmentTelegramConfigAccepted = true;
+        this.setupError = null;
+    }
+
+    public void markSetupError(String setupError) {
+        this.setupError = setupError == null || setupError.isBlank()
+                ? "Setup error."
+                : setupError.strip();
+        this.environmentTelegramConfigAccepted = false;
     }
 
     @Transactional
@@ -165,8 +207,11 @@ public class AtlasRuntimeSettingsService {
     }
 
     private TelegramLaunchMode resolveMode(AtlasProperties.Telegram telegram, AtlasRuntimeSettingsEntity settings) {
-        if (telegram.enabled() && telegram.hasBotToken()) {
-            return telegram.registerWebhookOnStartup() ? TelegramLaunchMode.WEBHOOK : TelegramLaunchMode.POLLING;
+        if (settings != null && settings.isSetupCompleted() && settings.getTelegramMode() != null) {
+            return settings.getTelegramMode();
+        }
+        if (telegram.hasBotToken() && environmentTelegramConfigAccepted && setupError == null) {
+            return telegram.mode();
         }
         return settings == null ? null : settings.getTelegramMode();
     }
@@ -187,14 +232,41 @@ public class AtlasRuntimeSettingsService {
         return stripToNull(value);
     }
 
-    private String mask(String value) {
-        String stripped = stripToNull(value);
-        if (stripped == null) {
-            return null;
+    private String normalizeWebhookUrl(String value, String webhookPath) {
+        if (value == null || webhookPath == null || webhookPath.isBlank()) {
+            return value;
         }
-        if (stripped.length() <= 6) {
-            return "******";
+        String normalizedPath = webhookPath.startsWith("/") ? webhookPath : "/" + webhookPath;
+        if (value.endsWith(normalizedPath)) {
+            String base = value.substring(0, value.length() - normalizedPath.length());
+            return base.isBlank() ? value : base;
         }
-        return stripped.substring(0, 3) + "..." + stripped.substring(stripped.length() - 3);
+        return value;
+    }
+
+    private LocalLaunchState state(boolean setupCompleted, boolean telegramConfigured, EffectiveTelegramConfig config) {
+        if (setupError != null) {
+            return LocalLaunchState.SETUP_ERROR;
+        }
+        if (!telegramConfigured) {
+            return setupCompleted ? LocalLaunchState.TELEGRAM_DISABLED : LocalLaunchState.SETUP_REQUIRED;
+        }
+        if (config.isPollingMode()) {
+            return LocalLaunchState.TELEGRAM_POLLING_ACTIVE;
+        }
+        if (config.isWebhookMode()) {
+            return LocalLaunchState.TELEGRAM_WEBHOOK_ACTIVE;
+        }
+        return LocalLaunchState.READY;
+    }
+
+    private String adapterStatus(LocalLaunchState state) {
+        return switch (state) {
+            case TELEGRAM_POLLING_ACTIVE, TELEGRAM_WEBHOOK_ACTIVE -> "Active";
+            case SETUP_ERROR -> "Error";
+            case SETUP_REQUIRED -> "Setup required";
+            case READY -> "Ready";
+            case TELEGRAM_DISABLED -> "Disabled";
+        };
     }
 }

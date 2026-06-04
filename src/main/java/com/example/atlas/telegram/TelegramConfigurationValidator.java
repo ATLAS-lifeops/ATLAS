@@ -21,7 +21,7 @@ public class TelegramConfigurationValidator {
             throw new IllegalStateException(
                     "ATLAS Telegram integration is enabled, but atlas.telegram.bot-token is missing. "
                             + "Set ATLAS_TELEGRAM_BOT_TOKEN, enable setup with ATLAS_SETUP_ENABLED=true, "
-                            + "or disable Telegram with ATLAS_TELEGRAM_ENABLED=false."
+                            + "or start ATLAS in setup mode."
             );
         }
     }

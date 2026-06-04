@@ -10,9 +10,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(100)
 public class TelegramWebhookRegistrationService implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramWebhookRegistrationService.class);
@@ -123,15 +125,15 @@ public class TelegramWebhookRegistrationService implements ApplicationRunner {
         }
 
         AtlasProperties.Telegram telegram = properties.telegram();
-        TelegramLaunchMode mode = telegram.registerWebhookOnStartup() ? TelegramLaunchMode.WEBHOOK : TelegramLaunchMode.POLLING;
+        TelegramLaunchMode mode = telegram.mode();
         return new EffectiveTelegramConfig(
-                telegram.enabled(),
-                telegram.enabled() && telegram.hasBotToken(),
+                telegram.enabled() || telegram.hasBotToken(),
+                telegram.hasBotToken(),
                 telegram.botToken(),
                 telegram.botUsername(),
                 mode,
                 telegram.webhookPath(),
-                telegram.publicBaseUrl(),
+                telegram.effectiveWebhookUrl(),
                 telegram.webhookSecret(),
                 telegram.registerWebhookOnStartup(),
                 telegram.dropPendingUpdatesOnWebhookRegistration(),
