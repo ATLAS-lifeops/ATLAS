@@ -67,7 +67,7 @@ public class TelegramMessageSender {
         }
     }
 
-    public void editPanel(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
+    public boolean editPanel(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
         try {
             telegramApiClient.editMessageCaption(chatId, messageId, caption, replyMarkup);
             log.info(
@@ -76,6 +76,7 @@ public class TelegramMessageSender {
                     messageId,
                     replyMarkup != null
             );
+            return true;
         } catch (RuntimeException exception) {
             log.warn(
                     "Telegram editMessageCaption failed: chat_id={}, message_id={}, reply_markup_present={}, error_type={}",
@@ -84,6 +85,7 @@ public class TelegramMessageSender {
                     replyMarkup != null,
                     exception.getClass().getSimpleName()
             );
+            return false;
         }
     }
 

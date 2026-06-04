@@ -120,6 +120,35 @@ class TelegramUpdateHandlerTest {
     }
 
     @Test
+    void helpCommandSendsProductPanel() {
+        boolean handled = handler.handleUpdate(textUpdate("/help"));
+
+        assertThat(handled).isTrue();
+        assertThat(apiClient.sentPhotoCaptions()).singleElement().asString()
+                .contains("Помощь ATLAS");
+        assertThat(apiClient.sentPhotoMarkups()).singleElement().isNotNull();
+    }
+
+    @Test
+    void menuCallbackFallsBackToNewPanelWhenCaptionEditFails() {
+        RecordingTelegramApiClient client = new RecordingTelegramApiClient();
+        client.failEdits();
+        TelegramUpdateHandler fallbackHandler = new TelegramUpdateHandler(
+                orchestratorService(),
+                new TelegramMessageSender(client),
+                new SafetyGuard()
+        );
+
+        boolean handled = fallbackHandler.handleUpdate(callbackUpdate("atlas:menu"));
+
+        assertThat(handled).isTrue();
+        assertThat(client.editedCaptions()).isEmpty();
+        assertThat(client.sentPhotoCaptions()).singleElement().asString()
+                .contains("Что хочешь сделать сейчас");
+        assertThat(client.answeredCallbackIds()).containsExactly("callback-1");
+    }
+
+    @Test
     void startWithoutSavedLanguageSendsLanguagePanel() {
         RecordingTelegramApiClient client = new RecordingTelegramApiClient();
         FakeTelegramUserService userService = new FakeTelegramUserService();
@@ -255,6 +284,7 @@ class TelegramUpdateHandlerTest {
         private final List<String> editedCaptions = new ArrayList<>();
         private final List<InlineKeyboardMarkup> editedMarkups = new ArrayList<>();
         private final List<String> answeredCallbackIds = new ArrayList<>();
+        private boolean failEdits;
 
         @Override
         public void sendMessage(long chatId, String text) {
@@ -276,6 +306,9 @@ class TelegramUpdateHandlerTest {
 
         @Override
         public void editMessageCaption(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
+            if (failEdits) {
+                throw new IllegalStateException("caption edit failed");
+            }
             editedCaptions.add(caption);
             editedMarkups.add(replyMarkup);
         }
@@ -311,6 +344,10 @@ class TelegramUpdateHandlerTest {
 
         List<String> answeredCallbackIds() {
             return answeredCallbackIds;
+        }
+
+        void failEdits() {
+            failEdits = true;
         }
     }
 

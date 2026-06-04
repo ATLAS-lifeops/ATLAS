@@ -122,9 +122,9 @@ public class TelegramUpdateHandler {
             return true;
         }
 
-        RoutedResponse routedResponse = handleTextMessage(user, message.text(), requestType);
+        RoutedResponse routedResponse = requestType == RequestType.HELP ? help(user) : handleTextMessage(user, message.text(), requestType);
         String response = routedResponse.content();
-        if (requestType == RequestType.START) {
+        if (requestType == RequestType.START || requestType == RequestType.HELP) {
             messageSender.sendPanel(message.chat().id(), response, routedResponse.replyMarkup());
         } else {
             messageSender.sendText(message.chat().id(), response, routedResponse.replyMarkup());
@@ -161,7 +161,10 @@ public class TelegramUpdateHandler {
         TelegramUserEntity user = upsertUser(callbackQuery);
         RoutedResponse response = routeCallback(user, callbackData);
         if (response.editPanel() && callbackQuery.message().messageId() != null) {
-            messageSender.editPanel(chatId, callbackQuery.message().messageId(), response.content(), response.replyMarkup());
+            boolean edited = messageSender.editPanel(chatId, callbackQuery.message().messageId(), response.content(), response.replyMarkup());
+            if (!edited) {
+                messageSender.sendPanel(chatId, response.content(), response.replyMarkup());
+            }
         } else {
             messageSender.sendText(chatId, response.content(), response.replyMarkup());
         }
@@ -256,6 +259,9 @@ public class TelegramUpdateHandler {
         if (action == TelegramAction.OPEN_SETTINGS) {
             return settings(user, service);
         }
+        if (action == TelegramAction.SHOW_HELP) {
+            return help(user);
+        }
         if (action == TelegramAction.CONFIRM_RESTART_ONBOARDING) {
             return new RoutedResponse(
                     language(user).orElse(UserLanguage.RU) == UserLanguage.EN
@@ -273,6 +279,37 @@ public class TelegramUpdateHandler {
         RequestType requestType = actionRouter.requestType(action);
         String command = actionRouter.commandForAction(action);
         return handleTextMessage(user, command, requestType);
+    }
+
+    private RoutedResponse help(TelegramUserEntity user) {
+        UserLanguage language = language(user).orElse(UserLanguage.RU);
+        if (language == UserLanguage.EN) {
+            return new RoutedResponse(
+                    """
+                    ATLAS Help
+
+                    Use the buttons for the main flows:
+                    check-in, day plan, habits, evening reflection, report, minimal plan and settings.
+
+                    Commands also work: /start, /checkin, /day, /habits, /evening, /report, /cancel, /emergency.
+                    """,
+                    RequestType.HELP,
+                    keyboardFactory.help(language),
+                    true
+            );
+        }
+        return new RoutedResponse(
+                """
+                Помощь ATLAS
+
+                Основной путь - кнопки: check-in, план дня, привычки, вечерняя рефлексия, отчёт, минимальный план и настройки.
+
+                Команды тоже работают: /start, /checkin, /day, /habits, /evening, /report, /cancel, /emergency.
+                """,
+                RequestType.HELP,
+                keyboardFactory.help(language),
+                true
+        );
     }
 
     private RoutedResponse mainMenu(TelegramUserEntity user) {

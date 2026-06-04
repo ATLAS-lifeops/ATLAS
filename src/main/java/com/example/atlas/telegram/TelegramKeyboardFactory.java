@@ -40,7 +40,22 @@ public class TelegramKeyboardFactory {
     }
 
     public InlineKeyboardMarkup help() {
-        return keyboard(row(button("Меню", TelegramActionRouter.MENU)));
+        return help(UserLanguage.RU);
+    }
+
+    public InlineKeyboardMarkup help(UserLanguage language) {
+        if (language == UserLanguage.EN) {
+            return keyboard(
+                    row(button("🌅 Check-in", TelegramActionRouter.CHECKIN_START), button("🗓 Day plan", TelegramActionRouter.DAY)),
+                    row(button("✅ Habits", TelegramActionRouter.HABITS_START), button("📊 Report", TelegramActionRouter.REPORT)),
+                    row(button("⬅️ Menu", TelegramActionRouter.MENU))
+            );
+        }
+        return keyboard(
+                row(button("🌅 Check-in", TelegramActionRouter.CHECKIN_START), button("🗓 План дня", TelegramActionRouter.DAY)),
+                row(button("✅ Привычки", TelegramActionRouter.HABITS_START), button("📊 Отчёт", TelegramActionRouter.REPORT)),
+                row(button("⬅️ Меню", TelegramActionRouter.MENU))
+        );
     }
 
     public InlineKeyboardMarkup onboardingLifeAreas() {
