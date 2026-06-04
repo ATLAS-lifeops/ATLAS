@@ -13,7 +13,7 @@
 
     <groupId>com.example</groupId>
     <artifactId>atlas</artifactId>
-    <version>0.5.3</version>
+    <version>0.6.0</version>
     <name>ATLAS</name>
     <description>Telegram life operating system for state, focus, habits, planning, reflection and progress.</description>
 
