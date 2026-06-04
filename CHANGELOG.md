@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.3
+
+- Added standard Telegram navigation actions and localized buttons
+- Added unfinished flow continuation panel with Continue, Restart, Cancel and Menu
+- Added safe Back support for reversible conversation steps
+- Improved Settings and Profile panels without exposing Telegram secrets
+- Added restart onboarding confirmation
+- Added completion next-action buttons and improved empty states
+- Hardened unsupported callback fallback behavior
+- Reorganized documentation into `docs/ru` and `docs/en`
+
 ## v0.5.2
 
 - Added beginner-friendly `make start` flow that starts Docker Compose, waits for health, and opens `/setup`
