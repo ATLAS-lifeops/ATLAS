@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.png" alt="ATLAS logo" width="160">
+  <img src="assets/logo.png" alt="ATLAS logo" width="160">
 </p>
 
 <h1 align="center">ATLAS</h1>
@@ -166,7 +166,7 @@ WEBHOOK — production-режим, приложение принимает POST 
 
 <h2 align="center">Production Telegram Launch</h2>
 
-Production-запуск Telegram-бота описан в [deployment guide](docs/deployment/telegram-production.md).
+Production webhook mode описан в разделе конфигурации ниже. Локальные режимы запуска описаны в [русской](docs/ru/local-launch.md) и [английской](docs/en/local-launch.md) документации.
 
 Минимальные production-переменные:
 
@@ -218,10 +218,14 @@ ATLAS не является врачом, диетологом или медиц
 
 <h2 align="center">Docs</h2>
 
-- [Границы backend-части](docs/architecture/backend-scope.md)
-- [Life onboarding and tracking flows](docs/product/life-flows.md)
-- [Telegram button UX](docs/product/telegram-ux.md)
-- [Production Telegram запуск](docs/deployment/telegram-production.md)
+- [Русская документация](docs/ru/README.md)
+- [English documentation](docs/en/README.md)
+- [Локальный запуск](docs/ru/local-launch.md)
+- [Local launch](docs/en/local-launch.md)
+- [Telegram UX RU](docs/ru/telegram-ux.md)
+- [Telegram UX EN](docs/en/telegram-ux.md)
+- [История изменений RU](docs/ru/changelog.md)
+- [Changelog EN](docs/en/changelog.md)
 
 <h2 align="center">License</h2>
 
