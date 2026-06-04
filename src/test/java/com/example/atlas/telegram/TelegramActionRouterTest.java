@@ -28,4 +28,11 @@ class TelegramActionRouterTest {
         assertThat(router.flowInputForCallback("atlas:onboarding:life_area:FOCUS")).contains("FOCUS");
         assertThat(router.flowInputForCallback("atlas:onboarding:life_area:OTHER")).isEmpty();
     }
+
+    @Test
+    void languageCallbacksMapToActions() {
+        assertThat(router.actionForCallback("atlas:language:ru")).contains(TelegramAction.SELECT_LANGUAGE_RU);
+        assertThat(router.actionForCallback("atlas:language:en")).contains(TelegramAction.SELECT_LANGUAGE_EN);
+        assertThat(router.actionForCallback("atlas:settings:language")).contains(TelegramAction.CHANGE_LANGUAGE);
+    }
 }

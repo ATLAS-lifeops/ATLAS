@@ -9,8 +9,13 @@ import com.example.atlas.agent.recovery.RecoveryAgent;
 import com.example.atlas.agent.report.ReportAgent;
 import com.example.atlas.orchestrator.OrchestratorService;
 import com.example.atlas.safety.SafetyGuard;
+import com.example.atlas.user.UserLanguage;
+import com.example.atlas.user.entity.TelegramUserEntity;
+import com.example.atlas.user.service.TelegramUserService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,10 +103,10 @@ class TelegramUpdateHandlerTest {
 
         assertThat(handled).isTrue();
         assertThat(apiClient.answeredCallbackIds()).containsExactly("callback-1");
-        assertThat(apiClient.sentTexts()).singleElement().asString()
+        assertThat(apiClient.editedCaptions()).singleElement().asString()
                 .contains("ATLAS")
                 .contains("Что хочешь сделать сейчас");
-        assertThat(apiClient.sentMarkups()).singleElement().isNotNull();
+        assertThat(apiClient.editedMarkups()).singleElement().isNotNull();
     }
 
     @Test
@@ -110,8 +115,53 @@ class TelegramUpdateHandlerTest {
 
         assertThat(handled).isTrue();
         assertThat(apiClient.answeredCallbackIds()).containsExactly("callback-1");
-        assertThat(apiClient.sentTexts()).singleElement().asString()
+        assertThat(apiClient.editedCaptions()).singleElement().asString()
                 .contains("Не получилось обработать кнопку");
+    }
+
+    @Test
+    void startWithoutSavedLanguageSendsLanguagePanel() {
+        RecordingTelegramApiClient client = new RecordingTelegramApiClient();
+        FakeTelegramUserService userService = new FakeTelegramUserService();
+        TelegramUpdateHandler languageHandler = handler(client, userService);
+
+        boolean handled = languageHandler.handleUpdate(textUpdate("/start"));
+
+        assertThat(handled).isTrue();
+        assertThat(client.sentPhotoCaptions()).singleElement().asString()
+                .contains("Choose your language / Выберите язык");
+        assertThat(client.sentPhotoMarkups()).singleElement()
+                .extracting(markup -> markup.inlineKeyboard().get(0).get(0).callbackData())
+                .isEqualTo("atlas:language:ru");
+    }
+
+    @Test
+    void languageCallbackSavesLanguageAndEditsPanelToEnglishMenu() {
+        RecordingTelegramApiClient client = new RecordingTelegramApiClient();
+        FakeTelegramUserService userService = new FakeTelegramUserService();
+        TelegramUpdateHandler languageHandler = handler(client, userService);
+
+        boolean handled = languageHandler.handleUpdate(callbackUpdate("atlas:language:en"));
+
+        assertThat(handled).isTrue();
+        assertThat(userService.user().getLanguage()).contains(UserLanguage.EN);
+        assertThat(client.editedCaptions()).singleElement().asString()
+                .contains("What would you like to do now?");
+        assertThat(client.answeredCallbackIds()).containsExactly("callback-1");
+    }
+
+    @Test
+    void settingsLanguageButtonEditsPanelToLanguageSelection() {
+        RecordingTelegramApiClient client = new RecordingTelegramApiClient();
+        FakeTelegramUserService userService = new FakeTelegramUserService();
+        userService.user().updateLanguage(UserLanguage.EN);
+        TelegramUpdateHandler languageHandler = handler(client, userService);
+
+        boolean handled = languageHandler.handleUpdate(callbackUpdate("atlas:settings:language"));
+
+        assertThat(handled).isTrue();
+        assertThat(client.editedCaptions()).singleElement().asString()
+                .contains("Choose your language / Выберите язык");
     }
 
     private TelegramUpdate textUpdate(String text) {
@@ -159,10 +209,51 @@ class TelegramUpdateHandlerTest {
         ));
     }
 
+    private TelegramUpdateHandler handler(RecordingTelegramApiClient client, TelegramUserService userService) {
+        return new TelegramUpdateHandler(
+                orchestratorService(),
+                new TelegramMessageSender(client),
+                new SafetyGuard(),
+                provider(userService),
+                provider(null),
+                provider(null),
+                new TelegramActionRouter(),
+                new TelegramKeyboardFactory()
+        );
+    }
+
+    private <T> ObjectProvider<T> provider(T value) {
+        return new ObjectProvider<>() {
+            @Override
+            public T getObject(Object... args) {
+                return value;
+            }
+
+            @Override
+            public T getIfAvailable() {
+                return value;
+            }
+
+            @Override
+            public T getIfUnique() {
+                return value;
+            }
+
+            @Override
+            public T getObject() {
+                return value;
+            }
+        };
+    }
+
     private static class RecordingTelegramApiClient implements TelegramApiClient {
 
         private final List<String> sentTexts = new ArrayList<>();
         private final List<InlineKeyboardMarkup> sentMarkups = new ArrayList<>();
+        private final List<String> sentPhotoCaptions = new ArrayList<>();
+        private final List<InlineKeyboardMarkup> sentPhotoMarkups = new ArrayList<>();
+        private final List<String> editedCaptions = new ArrayList<>();
+        private final List<InlineKeyboardMarkup> editedMarkups = new ArrayList<>();
         private final List<String> answeredCallbackIds = new ArrayList<>();
 
         @Override
@@ -178,6 +269,18 @@ class TelegramUpdateHandlerTest {
         }
 
         @Override
+        public void sendPhoto(long chatId, String photo, String caption, InlineKeyboardMarkup replyMarkup) {
+            sentPhotoCaptions.add(caption);
+            sentPhotoMarkups.add(replyMarkup);
+        }
+
+        @Override
+        public void editMessageCaption(long chatId, long messageId, String caption, InlineKeyboardMarkup replyMarkup) {
+            editedCaptions.add(caption);
+            editedMarkups.add(replyMarkup);
+        }
+
+        @Override
         public void answerCallbackQuery(String callbackQueryId, String text) {
             answeredCallbackIds.add(callbackQueryId);
         }
@@ -190,8 +293,59 @@ class TelegramUpdateHandlerTest {
             return sentMarkups;
         }
 
+        List<String> sentPhotoCaptions() {
+            return sentPhotoCaptions;
+        }
+
+        List<InlineKeyboardMarkup> sentPhotoMarkups() {
+            return sentPhotoMarkups;
+        }
+
+        List<String> editedCaptions() {
+            return editedCaptions;
+        }
+
+        List<InlineKeyboardMarkup> editedMarkups() {
+            return editedMarkups;
+        }
+
         List<String> answeredCallbackIds() {
             return answeredCallbackIds;
+        }
+    }
+
+    private static class FakeTelegramUserService extends TelegramUserService {
+
+        private final TelegramUserEntity user = TelegramUserEntity.create(
+                7L,
+                42L,
+                "user",
+                "User",
+                Instant.parse("2026-06-04T00:00:00Z")
+        );
+
+        FakeTelegramUserService() {
+            super(null);
+        }
+
+        @Override
+        public TelegramUserEntity upsertFromMessage(TelegramUpdate.TelegramMessage message) {
+            return user;
+        }
+
+        @Override
+        public TelegramUserEntity upsertFromCallbackQuery(TelegramUpdate.TelegramCallbackQuery callbackQuery) {
+            return user;
+        }
+
+        @Override
+        public TelegramUserEntity updateLanguage(TelegramUserEntity user, UserLanguage language) {
+            this.user.updateLanguage(language);
+            return this.user;
+        }
+
+        TelegramUserEntity user() {
+            return user;
         }
     }
 }

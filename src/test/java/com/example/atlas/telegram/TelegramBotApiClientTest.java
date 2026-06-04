@@ -42,6 +42,46 @@ class TelegramBotApiClientTest {
         server.verify();
     }
 
+    @Test
+    void sendPhotoIncludesCaptionAndInlineKeyboardMarkup() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TelegramBotApiClient client = new TelegramBotApiClient(properties(), noRuntimeSettings(), builder);
+
+        server.expect(once(), requestTo("https://api.telegram.org/bottest-token/sendPhoto"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.chat_id").value(42))
+                .andExpect(jsonPath("$.photo").value("https://atlas.example/logo.png"))
+                .andExpect(jsonPath("$.caption").value("ATLAS"))
+                .andExpect(jsonPath("$.reply_markup.inline_keyboard[0][0].callback_data").value("atlas:menu"))
+                .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+        client.sendPhoto(42L, "https://atlas.example/logo.png", "ATLAS", new TelegramKeyboardFactory().backToMenu());
+
+        server.verify();
+    }
+
+    @Test
+    void editMessageCaptionIncludesReplyMarkup() {
+        RestClient.Builder builder = RestClient.builder();
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        TelegramBotApiClient client = new TelegramBotApiClient(properties(), noRuntimeSettings(), builder);
+
+        server.expect(once(), requestTo("https://api.telegram.org/bottest-token/editMessageCaption"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.chat_id").value(42))
+                .andExpect(jsonPath("$.message_id").value(10))
+                .andExpect(jsonPath("$.caption").value("ATLAS"))
+                .andExpect(jsonPath("$.reply_markup.inline_keyboard[0][0].callback_data").value("atlas:menu"))
+                .andRespond(withSuccess("{\"ok\":true}", MediaType.APPLICATION_JSON));
+
+        client.editMessageCaption(42L, 10L, "ATLAS", new TelegramKeyboardFactory().backToMenu());
+
+        server.verify();
+    }
+
     private AtlasProperties properties() {
         return new AtlasProperties(new AtlasProperties.Telegram(
                 true,
