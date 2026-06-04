@@ -67,12 +67,6 @@
 mvn test
 ```
 
-Локальный запуск с выключенной Telegram-интеграцией:
-
-```bash
-ATLAS_TELEGRAM_ENABLED=false mvn spring-boot:run
-```
-
 Рекомендуемый запуск для первого локального старта:
 
 ```bash
@@ -87,7 +81,11 @@ make start
 http://localhost:8080/setup
 ```
 
-`make start` запускает Docker Compose, ждёт готовности backend и открывает страницу настройки на стороне хоста. Это нужно потому, что `docker compose up -d` запускает контейнеры в фоне и не может надёжно открыть браузер хост-машины на macOS, Windows и Linux.
+`make start` запускает Docker Compose, ждёт готовности backend и открывает страницу настройки на стороне хоста. Если браузер не открылся автоматически, открой:
+
+```text
+http://localhost:8080/setup
+```
 
 Прямой запуск через Docker Compose:
 
@@ -109,6 +107,8 @@ make up
 make down
 make logs
 make restart
+make status
+make clean
 ```
 
 Эндпоинт состояния:
@@ -131,22 +131,25 @@ POST /telegram/webhook
 
 <h2 align="center">Configuration</h2>
 
-Telegram-интеграция по умолчанию выключена для локальной разработки. При `ATLAS_SETUP_ENABLED=true` приложение может стартовать без bot token и принять настройки через `/setup`.
+ATLAS поддерживает два локальных пути запуска.
 
-Минимальные переменные для первого запуска с web setup:
-
-```bash
-ATLAS_SETUP_ENABLED=true
-ATLAS_TELEGRAM_ENABLED=false
-```
-
-Переменные для запуска только через окружение:
+Setup mode:
 
 ```bash
-ATLAS_TELEGRAM_ENABLED=true
-ATLAS_TELEGRAM_BOT_TOKEN=<token>
-ATLAS_TELEGRAM_BOT_USERNAME=<username>
+make start
 ```
+
+Открой `/setup`, вставь Telegram Bot Token, выбери `Simple local launch`, сохрани настройки и напиши `/start` боту в Telegram.
+
+Preconfigured local bot mode:
+
+```bash
+cp .env.example .env
+# Заполни ATLAS_TELEGRAM_BOT_TOKEN локально, не добавляя .env в git.
+make start
+```
+
+Если `ATLAS_TELEGRAM_BOT_TOKEN` задан в локальном `.env`, ATLAS проверит token через Telegram `getMe`, сохранит runtime settings и запустит polling по умолчанию.
 
 Режимы запуска Telegram:
 
@@ -156,6 +159,8 @@ WEBHOOK — production-режим, приложение принимает POST 
 ```
 
 Данные v0.5.0 хранятся в PostgreSQL через Flyway: runtime settings, Telegram users, Telegram messages, life profiles, conversation states, check-ins, habits и evening reflections. Команда `/report` использует сохранённые данные за последние 7 дней, если они есть.
+
+`/setup/status` возвращает только безопасный публичный статус: нужен ли setup, настроен ли Telegram, username бота, режим запуска и состояние adapter. Token и webhook secret не возвращаются.
 
 Не добавляй реальные секреты в репозиторий.
 
@@ -169,6 +174,7 @@ Production-запуск Telegram-бота описан в [deployment guide](doc
 ATLAS_TELEGRAM_ENABLED=true
 ATLAS_TELEGRAM_BOT_TOKEN=<telegram-bot-token>
 ATLAS_TELEGRAM_BOT_USERNAME=<telegram-bot-username>
+ATLAS_TELEGRAM_MODE=webhook
 ATLAS_TELEGRAM_WEBHOOK_PATH=/telegram/webhook
 ATLAS_TELEGRAM_WEBHOOK_SECRET=<random-webhook-secret>
 ATLAS_PUBLIC_BASE_URL=https://<public-domain>
