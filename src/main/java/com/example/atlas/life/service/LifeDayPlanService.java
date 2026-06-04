@@ -69,6 +69,11 @@ public class LifeDayPlanService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasCheckIns(TelegramUserEntity user) {
+        return !checkInRepository.findByTelegramUserOrderByCreatedAtDesc(user).isEmpty();
+    }
+
     private int taskCount(LifeProfileEntity profile, CheckInEntity latest) {
         int count = profile.getPlanningStyle() == PlanningStyle.DETAILED ? 3 : 2;
         if (profile.getPlanningStyle() == PlanningStyle.MINIMAL) {

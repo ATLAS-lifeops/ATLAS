@@ -92,6 +92,14 @@ public class WeeklyLifeReportService {
         );
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasUsefulData(TelegramUserEntity user) {
+        Instant since = Instant.now(clock).minus(7, ChronoUnit.DAYS);
+        return !checkInRepository.findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(user, since).isEmpty()
+                || !habitService.recent(user, since).isEmpty()
+                || !reflectionService.recent(user, since).isEmpty();
+    }
+
     private String averageText(List<Integer> values) {
         OptionalDouble average = values.stream()
                 .filter(value -> value != null)

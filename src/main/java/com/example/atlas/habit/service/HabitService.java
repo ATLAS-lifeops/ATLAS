@@ -44,6 +44,11 @@ public class HabitService {
         return repository.findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(user, since);
     }
 
+    @Transactional(readOnly = true)
+    public boolean hasRecent(TelegramUserEntity user, Instant since) {
+        return !recent(user, since).isEmpty();
+    }
+
     private String trim(String value) {
         return value == null ? null : value.strip();
     }

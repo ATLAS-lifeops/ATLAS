@@ -134,7 +134,9 @@ public class TelegramUpdateHandler {
             return true;
         }
 
-        RoutedResponse routedResponse = requestType == RequestType.HELP ? help(user) : handleTextMessage(user, message.text(), requestType);
+        RoutedResponse routedResponse = requestType == RequestType.START && hasActiveFlow(user)
+                ? activeFlowContinuation(user)
+                : requestType == RequestType.HELP ? help(user) : handleTextMessage(user, message.text(), requestType);
         String response = routedResponse.content();
         if (requestType == RequestType.START || requestType == RequestType.HELP) {
             messageSender.sendPanel(message.chat().id(), response, routedResponse.replyMarkup());
@@ -225,10 +227,13 @@ public class TelegramUpdateHandler {
     private RoutedResponse routeCallback(TelegramUserEntity user, String callbackData) {
         TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
         if (!actionRouter.isSupportedCallback(callbackData)) {
+            UserLanguage language = language(user).orElse(UserLanguage.RU);
             return new RoutedResponse(
-                    "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
+                    language == UserLanguage.EN
+                            ? "Could not process this button. Open the menu and choose an action again."
+                            : "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
                     RequestType.GENERAL,
-                    keyboardFactory.mainMenu(language(user).orElse(UserLanguage.RU)),
+                    keyboardFactory.mainMenu(language),
                     true
             );
         }
@@ -242,9 +247,11 @@ public class TelegramUpdateHandler {
                 .orElseGet(() -> actionRouter.actionForCallback(callbackData)
                         .map(action -> routeAction(user, action, service))
                         .orElseGet(() -> new RoutedResponse(
-                                "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
+                                language(user).orElse(UserLanguage.RU) == UserLanguage.EN
+                                        ? "Could not process this button. Open the menu and choose an action again."
+                                        : "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
                                 RequestType.GENERAL,
-                                keyboardFactory.mainMenu()
+                                keyboardFactory.mainMenu(language(user).orElse(UserLanguage.RU))
                         )));
     }
 
@@ -255,6 +262,26 @@ public class TelegramUpdateHandler {
     private RoutedResponse routeAction(TelegramUserEntity user, TelegramAction action, TelegramLifeFlowService service) {
         if (action == TelegramAction.OPEN_MAIN_MENU) {
             return mainMenu(user);
+        }
+        if (action == TelegramAction.GO_BACK && service != null) {
+            TelegramLifeFlowService.FlowResult result = service.back(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
+        }
+        if (action == TelegramAction.CONTINUE_FLOW && service != null) {
+            TelegramLifeFlowService.FlowResult result = service.continueActiveFlow(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
+        }
+        if (action == TelegramAction.RESTART_FLOW && service != null) {
+            TelegramLifeFlowService.FlowResult result = service.restartActiveFlowConfirmation(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
+        }
+        if (action == TelegramAction.CONFIRM_ACTION && service != null) {
+            TelegramLifeFlowService.FlowResult result = service.restartActiveFlow(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
+        }
+        if (action == TelegramAction.DECLINE_ACTION && service != null) {
+            TelegramLifeFlowService.FlowResult result = service.activeFlowContinuation(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
         }
         if (action == TelegramAction.SELECT_LANGUAGE_RU) {
             return selectLanguage(user, UserLanguage.RU);
@@ -271,16 +298,29 @@ public class TelegramUpdateHandler {
         if (action == TelegramAction.OPEN_SETTINGS) {
             return settings(user, service);
         }
+        if (action == TelegramAction.OPEN_PROFILE && service != null) {
+            TelegramLifeFlowService.FlowResult result = service.profile(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
+        }
         if (action == TelegramAction.SHOW_HELP) {
             return help(user);
         }
         if (action == TelegramAction.CONFIRM_RESTART_ONBOARDING) {
+            UserLanguage language = language(user).orElse(UserLanguage.RU);
             return new RoutedResponse(
-                    language(user).orElse(UserLanguage.RU) == UserLanguage.EN
-                            ? "Restart onboarding and update your profile?"
-                            : "Перезапустить onboarding и обновить профиль?",
+                    language == UserLanguage.EN
+                            ? """
+                            Restart onboarding?
+
+                            Your profile will be updated after the new onboarding. Check-ins, habits and reports will not be deleted.
+                            """
+                            : """
+                            Перезапустить onboarding?
+
+                            Текущий профиль будет обновлён после нового прохождения. История check-in, привычек и отчётов не удалится.
+                            """,
                     RequestType.GENERAL,
-                    keyboardFactory.restartConfirmation(),
+                    keyboardFactory.restartConfirmation(language),
                     true
             );
         }
@@ -290,7 +330,22 @@ public class TelegramUpdateHandler {
         }
         RequestType requestType = actionRouter.requestType(action);
         String command = actionRouter.commandForAction(action);
-        return handleTextMessage(user, command, requestType);
+        RoutedResponse response = handleTextMessage(user, command, requestType);
+        return new RoutedResponse(response.content(), response.requestType(), response.replyMarkup(), true);
+    }
+
+    private boolean hasActiveFlow(TelegramUserEntity user) {
+        TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
+        return service != null && service.hasActiveFlow(user);
+    }
+
+    private RoutedResponse activeFlowContinuation(TelegramUserEntity user) {
+        TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
+        if (service == null) {
+            return mainMenu(user);
+        }
+        TelegramLifeFlowService.FlowResult result = service.activeFlowContinuation(user);
+        return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup(), true);
     }
 
     private RoutedResponse help(TelegramUserEntity user) {
@@ -343,7 +398,7 @@ public class TelegramUpdateHandler {
                     Choose a section below or write a question - I will try to route it to the right flow.
                     """,
                     RequestType.GENERAL,
-                    keyboardFactory.questionActions()
+                    keyboardFactory.questionActions(UserLanguage.EN)
             );
         }
         return new RoutedResponse(
@@ -353,7 +408,7 @@ public class TelegramUpdateHandler {
                 Выбери раздел ниже или напиши вопрос — я постараюсь направить его в подходящий сценарий.
                 """,
                 RequestType.GENERAL,
-                keyboardFactory.questionActions()
+                keyboardFactory.questionActions(UserLanguage.RU)
         );
     }
 

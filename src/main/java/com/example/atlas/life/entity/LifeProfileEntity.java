@@ -180,6 +180,10 @@ public class LifeProfileEntity {
         return stressFocus;
     }
 
+    public boolean isFocusTasks() {
+        return notes != null && notes.contains("Focus and tasks");
+    }
+
     public boolean isOnboardingCompleted() {
         return onboardingCompleted;
     }
