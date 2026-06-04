@@ -1,6 +1,7 @@
 package com.example.atlas.runtime.service;
 
 import com.example.atlas.config.AtlasProperties;
+import com.example.atlas.llm.LlmProvider;
 import com.example.atlas.runtime.entity.AtlasRuntimeSettingsEntity;
 import com.example.atlas.runtime.entity.TelegramLaunchMode;
 import com.example.atlas.runtime.repository.AtlasRuntimeSettingsRepository;
@@ -62,7 +63,24 @@ public class AtlasRuntimeSettingsService {
                 adapterStatus(state),
                 config.hasBotToken(),
                 config.isWebhookMode() && config.hasPublicBaseUrl() && config.hasWebhookSecret(),
-                setupError
+                setupError,
+                llmStatus()
+        );
+    }
+
+    private LlmRuntimeStatus llmStatus() {
+        AtlasProperties.Llm llm = properties.llm();
+        boolean configured = llm.configured();
+        return new LlmRuntimeStatus(
+                llm.enabled(),
+                configured,
+                llm.enabled() ? llm.provider() : LlmProvider.DISABLED,
+                blankToNull(llm.model()),
+                blankToNull(llm.safeBaseUrlHost()),
+                llm.dayPlanAvailable(),
+                llm.reportAvailable(),
+                llm.questionAvailable(),
+                configured ? "LLM configured" : "LLM disabled or incomplete configuration"
         );
     }
 

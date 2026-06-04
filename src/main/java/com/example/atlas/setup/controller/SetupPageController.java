@@ -206,6 +206,12 @@ public class SetupPageController {
         String mode = status.telegramMode() == null ? "Not configured" : status.telegramMode().name();
         String username = status.botUsername() == null ? "Not configured" : escape(status.botUsername());
         String displayMode = "POLLING".equals(mode) ? "Polling" : escape(mode);
+        String llmProvider = status.llm() == null || status.llm().provider() == null ? "Disabled" : escape(status.llm().provider().name());
+        String llmModel = status.llm() == null || status.llm().model() == null ? "Not configured" : escape(status.llm().model());
+        String llmStatus = status.llm() == null ? "LLM disabled or incomplete configuration" : escape(status.llm().status());
+        String llmDayPlan = yesNo(status.llm() != null && status.llm().dayPlanEnabled());
+        String llmReport = yesNo(status.llm() != null && status.llm().reportEnabled());
+        String llmQuestion = yesNo(status.llm() != null && status.llm().questionEnabled());
         return """
                 <!doctype html>
                 <html lang="en">
@@ -232,6 +238,12 @@ public class SetupPageController {
                         <dt>Telegram bot</dt><dd>@%s</dd>
                         <dt>Mode</dt><dd>%s</dd>
                         <dt>Status</dt><dd>%s</dd>
+                        <dt>LLM</dt><dd>%s</dd>
+                        <dt>LLM provider</dt><dd>%s</dd>
+                        <dt>LLM model</dt><dd>%s</dd>
+                        <dt>Day plan LLM</dt><dd>%s</dd>
+                        <dt>Report LLM</dt><dd>%s</dd>
+                        <dt>Question LLM</dt><dd>%s</dd>
                       </dl>
                       <p>Open Telegram and send <strong>/start</strong>.</p>
                       <h1>ATLAS запущен</h1>
@@ -239,6 +251,12 @@ public class SetupPageController {
                         <dt>Telegram bot</dt><dd>@%s</dd>
                         <dt>Режим</dt><dd>%s</dd>
                         <dt>Статус</dt><dd>%s</dd>
+                        <dt>LLM</dt><dd>%s</dd>
+                        <dt>LLM provider</dt><dd>%s</dd>
+                        <dt>LLM model</dt><dd>%s</dd>
+                        <dt>План дня LLM</dt><dd>%s</dd>
+                        <dt>Отчёт LLM</dt><dd>%s</dd>
+                        <dt>Вопросы LLM</dt><dd>%s</dd>
                       </dl>
                       <p>Открой Telegram и напиши <strong>/start</strong>.</p>
                       <p><a href="/setup?edit=true">Edit setup</a></p>
@@ -250,10 +268,26 @@ public class SetupPageController {
                 username,
                 displayMode,
                 escape(status.adapterStatus()),
+                llmStatus,
+                llmProvider,
+                llmModel,
+                llmDayPlan,
+                llmReport,
+                llmQuestion,
                 username,
                 displayMode,
-                status.telegramConfigured() ? "Активен" : escape(status.adapterStatus())
+                status.telegramConfigured() ? "Активен" : escape(status.adapterStatus()),
+                llmStatus,
+                llmProvider,
+                llmModel,
+                llmDayPlan,
+                llmReport,
+                llmQuestion
         );
+    }
+
+    private static String yesNo(boolean value) {
+        return value ? "yes" : "no";
     }
 
     private static String firstNonBlank(String first, String second) {

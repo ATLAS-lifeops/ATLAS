@@ -5,9 +5,12 @@ import com.example.atlas.checkin.repository.CheckInRepository;
 import com.example.atlas.habit.entity.HabitCheckEntity;
 import com.example.atlas.habit.service.HabitService;
 import com.example.atlas.life.entity.LifeProfileEntity;
+import com.example.atlas.llm.LlmReportSummaryService;
 import com.example.atlas.reflection.entity.EveningReflectionEntity;
 import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.user.entity.TelegramUserEntity;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +30,7 @@ public class WeeklyLifeReportService {
     private final HabitService habitService;
     private final EveningReflectionService reflectionService;
     private final Clock clock;
+    private final ObjectProvider<LlmReportSummaryService> llmReportSummaryService;
 
     public WeeklyLifeReportService(
             LifeProfileService lifeProfileService,
@@ -34,7 +38,18 @@ public class WeeklyLifeReportService {
             HabitService habitService,
             EveningReflectionService reflectionService
     ) {
-        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC());
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC(), null);
+    }
+
+    @Autowired
+    public WeeklyLifeReportService(
+            LifeProfileService lifeProfileService,
+            CheckInRepository checkInRepository,
+            HabitService habitService,
+            EveningReflectionService reflectionService,
+            ObjectProvider<LlmReportSummaryService> llmReportSummaryService
+    ) {
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC(), llmReportSummaryService);
     }
 
     WeeklyLifeReportService(
@@ -42,17 +57,28 @@ public class WeeklyLifeReportService {
             CheckInRepository checkInRepository,
             HabitService habitService,
             EveningReflectionService reflectionService,
-            Clock clock
+            Clock clock,
+            ObjectProvider<LlmReportSummaryService> llmReportSummaryService
     ) {
         this.lifeProfileService = lifeProfileService;
         this.checkInRepository = checkInRepository;
         this.habitService = habitService;
         this.reflectionService = reflectionService;
         this.clock = clock;
+        this.llmReportSummaryService = llmReportSummaryService;
     }
 
     @Transactional
     public String weeklyReport(TelegramUserEntity user) {
+        String deterministic = deterministicWeeklyReport(user);
+        LlmReportSummaryService service = llmReportSummaryService == null ? null : llmReportSummaryService.getIfAvailable();
+        if (service == null) {
+            return deterministic;
+        }
+        return service.summary(user, deterministic).orElse(deterministic);
+    }
+
+    private String deterministicWeeklyReport(TelegramUserEntity user) {
         Instant since = Instant.now(clock).minus(7, ChronoUnit.DAYS);
         LifeProfileEntity profile = lifeProfileService.getOrCreate(user);
         List<CheckInEntity> checkIns = checkInRepository.findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(user, since);

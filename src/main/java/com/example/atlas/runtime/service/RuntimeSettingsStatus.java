@@ -12,6 +12,7 @@ public record RuntimeSettingsStatus(
         String adapterStatus,
         boolean tokenConfigured,
         boolean webhookConfigured,
-        String setupError
+        String setupError,
+        LlmRuntimeStatus llm
 ) {
 }

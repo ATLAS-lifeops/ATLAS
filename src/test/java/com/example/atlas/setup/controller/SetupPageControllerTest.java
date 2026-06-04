@@ -1,6 +1,8 @@
 package com.example.atlas.setup.controller;
 
 import com.example.atlas.runtime.entity.TelegramLaunchMode;
+import com.example.atlas.llm.LlmProvider;
+import com.example.atlas.runtime.service.LlmRuntimeStatus;
 import com.example.atlas.runtime.service.LocalLaunchState;
 import com.example.atlas.runtime.service.RuntimeSettingsStatus;
 import org.junit.jupiter.api.Test;
@@ -37,7 +39,8 @@ class SetupPageControllerTest {
                 "Active",
                 true,
                 false,
-                null
+                null,
+                new LlmRuntimeStatus(false, false, LlmProvider.DISABLED, null, null, false, false, false, "LLM disabled or incomplete configuration")
         );
     }
 }

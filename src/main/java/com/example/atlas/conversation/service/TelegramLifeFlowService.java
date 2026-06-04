@@ -10,6 +10,7 @@ import com.example.atlas.life.entity.LifeProfileEntity;
 import com.example.atlas.life.service.LifeDayPlanService;
 import com.example.atlas.life.service.LifeProfileService;
 import com.example.atlas.life.service.WeeklyLifeReportService;
+import com.example.atlas.llm.LlmQuestionAnswerService;
 import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.safety.SafetyGuard;
@@ -17,6 +18,8 @@ import com.example.atlas.telegram.InlineKeyboardMarkup;
 import com.example.atlas.telegram.TelegramKeyboardFactory;
 import com.example.atlas.user.UserLanguage;
 import com.example.atlas.user.entity.TelegramUserEntity;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -50,6 +53,32 @@ public class TelegramLifeFlowService {
     private final WeeklyLifeReportService weeklyReportService;
     private final SafetyGuard safetyGuard;
     private final TelegramKeyboardFactory keyboardFactory;
+    private final ObjectProvider<LlmQuestionAnswerService> llmQuestionAnswerService;
+
+    @Autowired
+    public TelegramLifeFlowService(
+            ConversationStateService conversationStateService,
+            LifeProfileService lifeProfileService,
+            CheckInPersistenceService checkInPersistenceService,
+            HabitService habitService,
+            EveningReflectionService reflectionService,
+            LifeDayPlanService dayPlanService,
+            WeeklyLifeReportService weeklyReportService,
+            SafetyGuard safetyGuard,
+            TelegramKeyboardFactory keyboardFactory,
+            ObjectProvider<LlmQuestionAnswerService> llmQuestionAnswerService
+    ) {
+        this.conversationStateService = conversationStateService;
+        this.lifeProfileService = lifeProfileService;
+        this.checkInPersistenceService = checkInPersistenceService;
+        this.habitService = habitService;
+        this.reflectionService = reflectionService;
+        this.dayPlanService = dayPlanService;
+        this.weeklyReportService = weeklyReportService;
+        this.safetyGuard = safetyGuard;
+        this.keyboardFactory = keyboardFactory;
+        this.llmQuestionAnswerService = llmQuestionAnswerService;
+    }
 
     public TelegramLifeFlowService(
             ConversationStateService conversationStateService,
@@ -62,15 +91,18 @@ public class TelegramLifeFlowService {
             SafetyGuard safetyGuard,
             TelegramKeyboardFactory keyboardFactory
     ) {
-        this.conversationStateService = conversationStateService;
-        this.lifeProfileService = lifeProfileService;
-        this.checkInPersistenceService = checkInPersistenceService;
-        this.habitService = habitService;
-        this.reflectionService = reflectionService;
-        this.dayPlanService = dayPlanService;
-        this.weeklyReportService = weeklyReportService;
-        this.safetyGuard = safetyGuard;
-        this.keyboardFactory = keyboardFactory;
+        this(
+                conversationStateService,
+                lifeProfileService,
+                checkInPersistenceService,
+                habitService,
+                reflectionService,
+                dayPlanService,
+                weeklyReportService,
+                safetyGuard,
+                keyboardFactory,
+                null
+        );
     }
 
     public TelegramLifeFlowService(
@@ -92,7 +124,8 @@ public class TelegramLifeFlowService {
                 dayPlanService,
                 weeklyReportService,
                 safetyGuard,
-                new TelegramKeyboardFactory()
+                new TelegramKeyboardFactory(),
+                null
         );
     }
 
@@ -145,9 +178,22 @@ public class TelegramLifeFlowService {
             if (active.isPresent()) {
                 return Optional.of(continueFlow(active.get(), text));
             }
+            if (requestType == RequestType.GENERAL) {
+                return answerQuestion(user, text);
+            }
         }
 
         return Optional.empty();
+    }
+
+    private Optional<FlowResult> answerQuestion(TelegramUserEntity user, String text) {
+        LlmQuestionAnswerService service = llmQuestionAnswerService == null ? null : llmQuestionAnswerService.getIfAvailable();
+        if (service == null) {
+            return Optional.empty();
+        }
+        UserLanguage language = language(user);
+        return service.answer(user, text)
+                .map(answer -> new FlowResult(answer, RequestType.GENERAL, keyboardFactory.questionActions(language)));
     }
 
     private FlowResult startOnboardingOrWelcomeBack(TelegramUserEntity user) {

@@ -4,7 +4,10 @@ import com.example.atlas.checkin.entity.CheckInEntity;
 import com.example.atlas.checkin.repository.CheckInRepository;
 import com.example.atlas.life.PlanningStyle;
 import com.example.atlas.life.entity.LifeProfileEntity;
+import com.example.atlas.llm.LlmDayPlanService;
 import com.example.atlas.user.entity.TelegramUserEntity;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,14 +20,34 @@ public class LifeDayPlanService {
 
     private final LifeProfileService lifeProfileService;
     private final CheckInRepository checkInRepository;
+    private final ObjectProvider<LlmDayPlanService> llmDayPlanService;
 
     public LifeDayPlanService(LifeProfileService lifeProfileService, CheckInRepository checkInRepository) {
+        this(lifeProfileService, checkInRepository, null);
+    }
+
+    @Autowired
+    public LifeDayPlanService(
+            LifeProfileService lifeProfileService,
+            CheckInRepository checkInRepository,
+            ObjectProvider<LlmDayPlanService> llmDayPlanService
+    ) {
         this.lifeProfileService = lifeProfileService;
         this.checkInRepository = checkInRepository;
+        this.llmDayPlanService = llmDayPlanService;
     }
 
     @Transactional
     public String dayPlan(TelegramUserEntity user) {
+        String deterministic = deterministicDayPlan(user);
+        LlmDayPlanService service = llmDayPlanService == null ? null : llmDayPlanService.getIfAvailable();
+        if (service == null) {
+            return deterministic;
+        }
+        return service.dayPlan(user, deterministic).orElse(deterministic);
+    }
+
+    private String deterministicDayPlan(TelegramUserEntity user) {
         LifeProfileEntity profile = lifeProfileService.getOrCreate(user);
         CheckInEntity latest = checkInRepository.findByTelegramUserOrderByCreatedAtDesc(user).stream()
                 .findFirst()
