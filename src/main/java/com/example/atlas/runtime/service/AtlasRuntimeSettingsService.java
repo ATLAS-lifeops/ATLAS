@@ -4,7 +4,8 @@ import com.example.atlas.config.AtlasProperties;
 import com.example.atlas.runtime.entity.AtlasRuntimeSettingsEntity;
 import com.example.atlas.runtime.entity.TelegramLaunchMode;
 import com.example.atlas.runtime.repository.AtlasRuntimeSettingsRepository;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,23 +13,23 @@ import java.time.Clock;
 import java.time.Instant;
 
 @Service
-@ConditionalOnBean(AtlasRuntimeSettingsRepository.class)
 public class AtlasRuntimeSettingsService {
 
     private final AtlasProperties properties;
-    private final AtlasRuntimeSettingsRepository repository;
+    private final ObjectProvider<AtlasRuntimeSettingsRepository> repository;
     private final Clock clock;
 
+    @Autowired
     public AtlasRuntimeSettingsService(
             AtlasProperties properties,
-            AtlasRuntimeSettingsRepository repository
+            ObjectProvider<AtlasRuntimeSettingsRepository> repository
     ) {
         this(properties, repository, Clock.systemUTC());
     }
 
     AtlasRuntimeSettingsService(
             AtlasProperties properties,
-            AtlasRuntimeSettingsRepository repository,
+            ObjectProvider<AtlasRuntimeSettingsRepository> repository,
             Clock clock
     ) {
         this.properties = properties;
@@ -103,14 +104,14 @@ public class AtlasRuntimeSettingsService {
                 stripToNull(webhookSecret),
                 Instant.now(clock)
         );
-        return repository.save(settings);
+        return requireRepository().save(settings);
     }
 
     @Transactional
     public void updatePollingOffset(long offset) {
         AtlasRuntimeSettingsEntity settings = currentSettingsOrCreate();
         settings.updateTelegramPollingOffset(offset, Instant.now(clock));
-        repository.save(settings);
+        requireRepository().save(settings);
     }
 
     public void validateTelegramSetup(
@@ -144,13 +145,23 @@ public class AtlasRuntimeSettingsService {
 
     @Transactional
     public AtlasRuntimeSettingsEntity currentSettingsOrCreate() {
-        return repository.findFirstByOrderByCreatedAtAsc()
-                .orElseGet(() -> repository.save(AtlasRuntimeSettingsEntity.create(Instant.now(clock))));
+        AtlasRuntimeSettingsRepository settingsRepository = requireRepository();
+        return settingsRepository.findFirstByOrderByCreatedAtAsc()
+                .orElseGet(() -> settingsRepository.save(AtlasRuntimeSettingsEntity.create(Instant.now(clock))));
     }
 
     @Transactional(readOnly = true)
     public AtlasRuntimeSettingsEntity currentSettingsOrNull() {
-        return repository.findFirstByOrderByCreatedAtAsc().orElse(null);
+        AtlasRuntimeSettingsRepository settingsRepository = repository.getIfAvailable();
+        return settingsRepository == null ? null : settingsRepository.findFirstByOrderByCreatedAtAsc().orElse(null);
+    }
+
+    private AtlasRuntimeSettingsRepository requireRepository() {
+        AtlasRuntimeSettingsRepository settingsRepository = repository.getIfAvailable();
+        if (settingsRepository == null) {
+            throw new IllegalStateException("Runtime settings persistence is not available.");
+        }
+        return settingsRepository;
     }
 
     private TelegramLaunchMode resolveMode(AtlasProperties.Telegram telegram, AtlasRuntimeSettingsEntity settings) {
