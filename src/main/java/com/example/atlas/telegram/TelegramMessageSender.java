@@ -32,17 +32,19 @@ public class TelegramMessageSender {
                 InlineKeyboardMarkup chunkMarkup = index == chunks.size() - 1 ? replyMarkup : null;
                 telegramApiClient.sendMessage(chatId, chunk, chunkMarkup);
                 log.info(
-                        "Telegram sendMessage succeeded: chat_id={}, chunk_index={}, chunk_count={}",
-                        chatId,
-                        index + 1,
-                        chunks.size()
-                );
-            } catch (RuntimeException exception) {
-                log.warn(
-                        "Telegram sendMessage failed: chat_id={}, chunk_index={}, chunk_count={}, error_type={}",
+                        "Telegram sendMessage succeeded: chat_id={}, chunk_index={}, chunk_count={}, reply_markup_present={}",
                         chatId,
                         index + 1,
                         chunks.size(),
+                        chunkMarkup != null
+                );
+            } catch (RuntimeException exception) {
+                log.warn(
+                        "Telegram sendMessage failed: chat_id={}, chunk_index={}, chunk_count={}, reply_markup_present={}, error_type={}",
+                        chatId,
+                        index + 1,
+                        chunks.size(),
+                        index == chunks.size() - 1 && replyMarkup != null,
                         exception.getClass().getSimpleName()
                 );
             }
