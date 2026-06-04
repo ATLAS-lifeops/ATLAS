@@ -213,6 +213,7 @@ ATLAS не является врачом, диетологом или медиц
 
 - [Границы backend-части](docs/architecture/backend-scope.md)
 - [Life onboarding and tracking flows](docs/product/life-flows.md)
+- [Telegram button UX](docs/product/telegram-ux.md)
 - [Production Telegram запуск](docs/deployment/telegram-production.md)
 
 <h2 align="center">License</h2>

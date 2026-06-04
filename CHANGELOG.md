@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.5.1
+
+- Added Telegram inline keyboard support
+- Added callback query parsing and routing
+- Added button-first main menu after `/start`
+- Added onboarding buttons for profile setup
+- Added numeric buttons for daily check-ins
+- Added navigation buttons after day plans, reports, habits and evening reflections
+- Added lightweight Question entry point with deterministic guidance
+- Added Settings/Profile menu without exposing secrets
+- Added callback query acknowledgements
+- Documented Telegram product UX layer
+
 ## v0.5.0
 
 - Added life profile persistence for onboarding
