@@ -1,14 +1,15 @@
 package com.example.atlas.config;
 
+import com.example.atlas.llm.LlmProvider;
 import com.example.atlas.runtime.entity.TelegramLaunchMode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @ConfigurationProperties(prefix = "atlas")
-public record AtlasProperties(Telegram telegram, Setup setup) {
+public record AtlasProperties(Telegram telegram, Setup setup, Llm llm) {
 
     public AtlasProperties(Telegram telegram) {
-        this(telegram, null);
+        this(telegram, null, null);
     }
 
     @ConstructorBinding
@@ -18,6 +19,24 @@ public record AtlasProperties(Telegram telegram, Setup setup) {
         }
         if (setup == null) {
             setup = new Setup(true);
+        }
+        if (llm == null) {
+            llm = new Llm(
+                    false,
+                    LlmProvider.OPENAI_COMPATIBLE,
+                    "",
+                    "",
+                    "",
+                    20,
+                    700,
+                    0.3,
+                    5,
+                    true,
+                    2,
+                    true,
+                    true,
+                    true
+            );
         }
     }
 
@@ -74,5 +93,69 @@ public record AtlasProperties(Telegram telegram, Setup setup) {
     }
 
     public record Setup(boolean enabled) {
+    }
+
+    public record Llm(
+            boolean enabled,
+            LlmProvider provider,
+            String baseUrl,
+            String apiKey,
+            String model,
+            int timeoutSeconds,
+            int maxOutputTokens,
+            double temperature,
+            int connectTimeoutSeconds,
+            boolean retryEnabled,
+            int maxRetries,
+            boolean dayPlanEnabled,
+            boolean reportEnabled,
+            boolean questionEnabled
+    ) {
+        public Llm {
+            provider = provider == null ? LlmProvider.OPENAI_COMPATIBLE : provider;
+            baseUrl = defaultString(baseUrl);
+            apiKey = defaultString(apiKey);
+            model = defaultString(model);
+            timeoutSeconds = timeoutSeconds <= 0 ? 20 : timeoutSeconds;
+            maxOutputTokens = maxOutputTokens <= 0 ? 700 : maxOutputTokens;
+            temperature = temperature < 0 ? 0.3 : temperature;
+            connectTimeoutSeconds = connectTimeoutSeconds <= 0 ? 5 : connectTimeoutSeconds;
+            maxRetries = Math.max(0, maxRetries);
+        }
+
+        public boolean configured() {
+            return enabled
+                    && provider != LlmProvider.DISABLED
+                    && !baseUrl.isBlank()
+                    && !apiKey.isBlank()
+                    && !model.isBlank();
+        }
+
+        public boolean dayPlanAvailable() {
+            return configured() && dayPlanEnabled;
+        }
+
+        public boolean reportAvailable() {
+            return configured() && reportEnabled;
+        }
+
+        public boolean questionAvailable() {
+            return configured() && questionEnabled;
+        }
+
+        public String safeBaseUrlHost() {
+            if (baseUrl == null || baseUrl.isBlank()) {
+                return "";
+            }
+            try {
+                return java.net.URI.create(baseUrl).getHost();
+            } catch (IllegalArgumentException exception) {
+                return "";
+            }
+        }
+
+        private static String defaultString(String value) {
+            return value == null ? "" : value;
+        }
     }
 }

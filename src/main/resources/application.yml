@@ -36,3 +36,18 @@ atlas:
     public-base-url: ${ATLAS_PUBLIC_BASE_URL:}
     register-webhook-on-startup: ${ATLAS_TELEGRAM_REGISTER_WEBHOOK_ON_STARTUP:false}
     drop-pending-updates-on-webhook-registration: ${ATLAS_TELEGRAM_DROP_PENDING_UPDATES_ON_WEBHOOK_REGISTRATION:true}
+  llm:
+    enabled: ${ATLAS_LLM_ENABLED:false}
+    provider: ${ATLAS_LLM_PROVIDER:openai_compatible}
+    base-url: ${ATLAS_LLM_BASE_URL:}
+    api-key: ${ATLAS_LLM_API_KEY:}
+    model: ${ATLAS_LLM_MODEL:}
+    timeout-seconds: ${ATLAS_LLM_TIMEOUT_SECONDS:20}
+    max-output-tokens: ${ATLAS_LLM_MAX_OUTPUT_TOKENS:700}
+    temperature: ${ATLAS_LLM_TEMPERATURE:0.3}
+    connect-timeout-seconds: ${ATLAS_LLM_CONNECT_TIMEOUT_SECONDS:5}
+    retry-enabled: ${ATLAS_LLM_RETRY_ENABLED:true}
+    max-retries: ${ATLAS_LLM_MAX_RETRIES:2}
+    day-plan-enabled: ${ATLAS_LLM_DAY_PLAN_ENABLED:true}
+    report-enabled: ${ATLAS_LLM_REPORT_ENABLED:true}
+    question-enabled: ${ATLAS_LLM_QUESTION_ENABLED:true}
