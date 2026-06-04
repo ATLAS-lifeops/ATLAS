@@ -1,6 +1,7 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
+import com.example.atlas.runtime.entity.TelegramLaunchMode;
 import com.example.atlas.runtime.service.AtlasRuntimeSettingsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -105,7 +106,9 @@ class TelegramBotApiClientTest {
                 true,
                 "test-token",
                 "atlas_bot",
+                TelegramLaunchMode.POLLING,
                 "/telegram/webhook",
+                "",
                 "",
                 "",
                 false,

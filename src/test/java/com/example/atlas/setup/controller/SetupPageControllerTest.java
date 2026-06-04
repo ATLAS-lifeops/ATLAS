@@ -1,6 +1,7 @@
 package com.example.atlas.setup.controller;
 
 import com.example.atlas.runtime.entity.TelegramLaunchMode;
+import com.example.atlas.runtime.service.LocalLaunchState;
 import com.example.atlas.runtime.service.RuntimeSettingsStatus;
 import org.junit.jupiter.api.Test;
 
@@ -22,17 +23,20 @@ class SetupPageControllerTest {
         String html = SetupPageController.successPage(status(true));
 
         assertThat(html).contains("width: min(100%, 520px)");
-        assertThat(html).contains("Setup saved");
+        assertThat(html).contains("ATLAS is running");
     }
 
     private RuntimeSettingsStatus status(boolean setupCompleted) {
         return new RuntimeSettingsStatus(
+                !setupCompleted,
                 setupCompleted,
+                true,
                 TelegramLaunchMode.POLLING,
                 "atlas_test_bot",
+                LocalLaunchState.TELEGRAM_POLLING_ACTIVE,
+                "Active",
                 true,
                 false,
-                "123...abc",
                 null
         );
     }

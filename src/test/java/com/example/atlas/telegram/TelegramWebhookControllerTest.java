@@ -1,6 +1,7 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.config.AtlasProperties;
+import com.example.atlas.runtime.entity.TelegramLaunchMode;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,7 +73,9 @@ class TelegramWebhookControllerTest {
                         true,
                         "test-token",
                         "atlas_test_bot",
+                        TelegramLaunchMode.POLLING,
                         "/telegram/webhook",
+                        "",
                         webhookSecret,
                         "",
                         false,
@@ -106,7 +109,9 @@ class TelegramWebhookControllerTest {
                     true,
                     "test-token",
                     "atlas_test_bot",
+                    TelegramLaunchMode.POLLING,
                     "/telegram/webhook",
+                    "",
                     "",
                     "",
                     false,
