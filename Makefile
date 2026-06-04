@@ -1,3 +1,5 @@
+.PHONY: start up down logs restart status clean
+
 start:
 	./scripts/start.sh
 
@@ -12,3 +14,9 @@ logs:
 
 restart:
 	docker compose restart atlas-app
+
+status:
+	docker compose ps
+
+clean:
+	docker compose down

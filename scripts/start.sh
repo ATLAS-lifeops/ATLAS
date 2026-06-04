@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 APP_URL="${ATLAS_APP_URL:-http://localhost:8080}"
 HEALTH_URL="$APP_URL/actuator/health"
@@ -13,9 +13,10 @@ fail() {
 command -v docker >/dev/null 2>&1 || fail "Docker is required to start ATLAS."
 docker compose version >/dev/null 2>&1 || fail "Docker Compose is required to start ATLAS."
 
+printf '%s\n' "Starting ATLAS..."
 docker compose up --build -d
 
-printf '%s\n' "Waiting for ATLAS at $HEALTH_URL ..."
+printf '%s\n' "Waiting for ATLAS to become healthy..."
 
 attempts=60
 while [ "$attempts" -gt 0 ]; do
@@ -34,9 +35,21 @@ while [ "$attempts" -gt 0 ]; do
   sleep 2
 done
 
-[ "$attempts" -gt 0 ] || fail "ATLAS did not become healthy. Run: docker compose logs -f atlas-app"
+if [ "$attempts" -le 0 ]; then
+  cat >&2 <<EOF
+ATLAS did not become healthy in time.
+Check logs:
+  docker compose logs -f atlas-app
+Setup URL:
+  $SETUP_URL
+EOF
+  exit 1
+fi
 
 opened=false
+printf '%s\n' "ATLAS is running."
+printf '%s\n' "Opening setup: $SETUP_URL"
+
 case "$(uname -s 2>/dev/null || printf unknown)" in
   Darwin*)
     if command -v open >/dev/null 2>&1; then
@@ -57,9 +70,6 @@ case "$(uname -s 2>/dev/null || printf unknown)" in
     ;;
 esac
 
-printf '%s\n' "ATLAS is running."
-printf '%s\n' "Open setup: $SETUP_URL"
-
 if [ "$opened" != "true" ]; then
-  printf '%s\n' "Browser opening was unavailable. Open the setup URL manually."
+  printf '%s\n' "Open setup manually: $SETUP_URL"
 fi
