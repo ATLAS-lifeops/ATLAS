@@ -3,6 +3,7 @@ package com.example.atlas.telegram;
 import com.example.atlas.conversation.ConversationFlowType;
 import com.example.atlas.conversation.entity.ConversationStateEntity;
 import com.example.atlas.orchestrator.RequestType;
+import com.example.atlas.user.UserLanguage;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -12,11 +13,29 @@ import java.util.List;
 public class TelegramKeyboardFactory {
 
     public InlineKeyboardMarkup mainMenu() {
+        return mainMenu(UserLanguage.RU);
+    }
+
+    public InlineKeyboardMarkup mainMenu(UserLanguage language) {
+        if (language == UserLanguage.EN) {
+            return keyboard(
+                    row(button("🌅 Check-in", TelegramActionRouter.CHECKIN_START), button("🗓 Day plan", TelegramActionRouter.DAY)),
+                    row(button("✅ Habits", TelegramActionRouter.HABITS_START), button("🌙 Evening", TelegramActionRouter.EVENING_START)),
+                    row(button("📊 Report", TelegramActionRouter.REPORT), button("🚨 Minimal plan", TelegramActionRouter.EMERGENCY)),
+                    row(button("❓ Question", TelegramActionRouter.QUESTION_START), button("⚙️ Settings", TelegramActionRouter.SETTINGS))
+            );
+        }
         return keyboard(
                 row(button("🌅 Check-in", TelegramActionRouter.CHECKIN_START), button("🗓 План дня", TelegramActionRouter.DAY)),
                 row(button("✅ Привычки", TelegramActionRouter.HABITS_START), button("🌙 Вечер", TelegramActionRouter.EVENING_START)),
                 row(button("📊 Отчёт", TelegramActionRouter.REPORT), button("🚨 Минимальный план", TelegramActionRouter.EMERGENCY)),
                 row(button("❓ Вопрос", TelegramActionRouter.QUESTION_START), button("⚙️ Настройки", TelegramActionRouter.SETTINGS))
+        );
+    }
+
+    public InlineKeyboardMarkup languageSelection() {
+        return keyboard(
+                row(button("🇷🇺 Русский", TelegramActionRouter.LANGUAGE_RU), button("🇬🇧 English", TelegramActionRouter.LANGUAGE_EN))
         );
     }
 
@@ -62,6 +81,12 @@ public class TelegramKeyboardFactory {
         return keyboard(row(button("Меню", TelegramActionRouter.MENU)));
     }
 
+    public InlineKeyboardMarkup backToMenu(UserLanguage language) {
+        return language == UserLanguage.EN
+                ? keyboard(row(button("Menu", TelegramActionRouter.MENU)))
+                : backToMenu();
+    }
+
     public InlineKeyboardMarkup dayPlanActions() {
         return keyboard(
                 row(button("✅ Привычка", TelegramActionRouter.HABITS_START), button("🌙 Вечер", TelegramActionRouter.EVENING_START)),
@@ -99,9 +124,21 @@ public class TelegramKeyboardFactory {
     }
 
     public InlineKeyboardMarkup settingsActions() {
+        return settingsActions(UserLanguage.RU);
+    }
+
+    public InlineKeyboardMarkup settingsActions(UserLanguage language) {
+        if (language == UserLanguage.EN) {
+            return keyboard(
+                    row(button("🌐 Change language", TelegramActionRouter.SETTINGS_LANGUAGE)),
+                    row(button("🔄 Restart onboarding", TelegramActionRouter.SETTINGS_RESTART_CONFIRM)),
+                    row(button("⬅️ Menu", TelegramActionRouter.MENU))
+            );
+        }
         return keyboard(
-                row(button("Перезапустить onboarding", TelegramActionRouter.SETTINGS_RESTART_CONFIRM)),
-                row(button("Меню", TelegramActionRouter.MENU))
+                row(button("🌐 Изменить язык", TelegramActionRouter.SETTINGS_LANGUAGE)),
+                row(button("🔄 Перезапустить onboarding", TelegramActionRouter.SETTINGS_RESTART_CONFIRM)),
+                row(button("⬅️ Меню", TelegramActionRouter.MENU))
         );
     }
 

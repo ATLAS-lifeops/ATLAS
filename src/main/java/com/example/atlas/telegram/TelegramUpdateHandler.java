@@ -5,6 +5,7 @@ import com.example.atlas.message.service.TelegramMessagePersistenceService;
 import com.example.atlas.orchestrator.OrchestratorService;
 import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.safety.SafetyGuard;
+import com.example.atlas.user.UserLanguage;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import com.example.atlas.user.service.TelegramUserService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -106,9 +107,28 @@ public class TelegramUpdateHandler {
         TelegramUserEntity user = upsertUser(message);
         recordIncoming(user, message.chat().id(), requestType, message.text());
 
+        if (shouldAskLanguage(user, message.text())) {
+            RoutedResponse language = languageSelection();
+            messageSender.sendPanel(message.chat().id(), language.content(), language.replyMarkup());
+            recordOutgoing(user, message.chat().id(), language.requestType(), language.content());
+            log.info(
+                    "Telegram update handled: update_id={}, chat_id={}, handled={}, request_type={}, language_required={}",
+                    updateId(update),
+                    message.chat().id(),
+                    true,
+                    language.requestType(),
+                    true
+            );
+            return true;
+        }
+
         RoutedResponse routedResponse = handleTextMessage(user, message.text(), requestType);
         String response = routedResponse.content();
-        messageSender.sendText(message.chat().id(), response, routedResponse.replyMarkup());
+        if (requestType == RequestType.START) {
+            messageSender.sendPanel(message.chat().id(), response, routedResponse.replyMarkup());
+        } else {
+            messageSender.sendText(message.chat().id(), response, routedResponse.replyMarkup());
+        }
         recordOutgoing(user, message.chat().id(), routedResponse.requestType(), response);
         log.info(
                 "Telegram update handled: update_id={}, chat_id={}, handled={}, request_type={}",
@@ -140,7 +160,11 @@ public class TelegramUpdateHandler {
 
         TelegramUserEntity user = upsertUser(callbackQuery);
         RoutedResponse response = routeCallback(user, callbackData);
-        messageSender.sendText(chatId, response.content(), response.replyMarkup());
+        if (response.editPanel() && callbackQuery.message().messageId() != null) {
+            messageSender.editPanel(chatId, callbackQuery.message().messageId(), response.content(), response.replyMarkup());
+        } else {
+            messageSender.sendText(chatId, response.content(), response.replyMarkup());
+        }
         recordOutgoing(user, chatId, response.requestType(), response.content());
         answerCallback(callbackQuery.id(), null);
         log.info(
@@ -189,8 +213,13 @@ public class TelegramUpdateHandler {
             return new RoutedResponse(
                     "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
                     RequestType.GENERAL,
-                    keyboardFactory.mainMenu()
+                    keyboardFactory.mainMenu(language(user).orElse(UserLanguage.RU)),
+                    true
             );
+        }
+
+        if (user != null && language(user).isEmpty() && !isLanguageCallback(callbackData)) {
+            return languageSelection();
         }
 
         return actionRouter.flowInputForCallback(callbackData)
@@ -210,19 +239,31 @@ public class TelegramUpdateHandler {
 
     private RoutedResponse routeAction(TelegramUserEntity user, TelegramAction action, TelegramLifeFlowService service) {
         if (action == TelegramAction.OPEN_MAIN_MENU) {
-            return mainMenu();
+            return mainMenu(user);
+        }
+        if (action == TelegramAction.SELECT_LANGUAGE_RU) {
+            return selectLanguage(user, UserLanguage.RU);
+        }
+        if (action == TelegramAction.SELECT_LANGUAGE_EN) {
+            return selectLanguage(user, UserLanguage.EN);
+        }
+        if (action == TelegramAction.CHANGE_LANGUAGE) {
+            return languageSelection();
         }
         if (action == TelegramAction.START_QUESTION) {
-            return questionEntry();
+            return questionEntry(user);
         }
         if (action == TelegramAction.OPEN_SETTINGS) {
             return settings(user, service);
         }
         if (action == TelegramAction.CONFIRM_RESTART_ONBOARDING) {
             return new RoutedResponse(
-                    "Перезапустить onboarding и обновить профиль?",
+                    language(user).orElse(UserLanguage.RU) == UserLanguage.EN
+                            ? "Restart onboarding and update your profile?"
+                            : "Перезапустить onboarding и обновить профиль?",
                     RequestType.GENERAL,
-                    keyboardFactory.restartConfirmation()
+                    keyboardFactory.restartConfirmation(),
+                    true
             );
         }
         if (action == TelegramAction.RESTART_ONBOARDING && service != null && user != null) {
@@ -234,15 +275,28 @@ public class TelegramUpdateHandler {
         return handleTextMessage(user, command, requestType);
     }
 
-    private RoutedResponse mainMenu() {
+    private RoutedResponse mainMenu(TelegramUserEntity user) {
+        UserLanguage language = language(user).orElse(UserLanguage.RU);
         return new RoutedResponse(
-                "ATLAS\n\nЧто хочешь сделать сейчас?",
+                mainMenuCaption(language),
                 RequestType.GENERAL,
-                keyboardFactory.mainMenu()
+                keyboardFactory.mainMenu(language),
+                true
         );
     }
 
-    private RoutedResponse questionEntry() {
+    private RoutedResponse questionEntry(TelegramUserEntity user) {
+        if (language(user).orElse(UserLanguage.RU) == UserLanguage.EN) {
+            return new RoutedResponse(
+                    """
+                    For now, I work best through structured flows: check-in, day plan, habits, evening reflection and report.
+
+                    Choose a section below or write a question - I will try to route it to the right flow.
+                    """,
+                    RequestType.GENERAL,
+                    keyboardFactory.questionActions()
+            );
+        }
         return new RoutedResponse(
                 """
                 Пока я лучше всего работаю через сценарии: check-in, план дня, привычки, вечерняя рефлексия и отчёт.
@@ -255,10 +309,28 @@ public class TelegramUpdateHandler {
     }
 
     private RoutedResponse settings(TelegramUserEntity user, TelegramLifeFlowService service) {
+        UserLanguage language = language(user).orElse(UserLanguage.RU);
         String content = service == null || user == null
-                ? "Настройки ATLAS\n\nПрофиль доступен после запуска Telegram persistence."
+                ? (language == UserLanguage.EN
+                ? "ATLAS Settings\n\nProfile is available after Telegram persistence starts."
+                : "Настройки ATLAS\n\nПрофиль доступен после запуска Telegram persistence.")
                 : service.settings(user);
-        return new RoutedResponse(content, RequestType.GENERAL, keyboardFactory.settingsActions());
+        return new RoutedResponse(content, RequestType.GENERAL, keyboardFactory.settingsActions(language), true);
+    }
+
+    private RoutedResponse languageSelection() {
+        return new RoutedResponse(
+                "ATLAS\n\nChoose your language / Выберите язык",
+                RequestType.GENERAL,
+                keyboardFactory.languageSelection(),
+                true
+        );
+    }
+
+    private RoutedResponse selectLanguage(TelegramUserEntity user, UserLanguage language) {
+        TelegramUserService service = userService == null ? null : userService.getIfAvailable();
+        TelegramUserEntity updated = service == null ? user : service.updateLanguage(user, language);
+        return mainMenu(updated == null ? user : updated);
     }
 
     private TelegramUserEntity upsertUser(TelegramUpdate.TelegramMessage message) {
@@ -306,6 +378,28 @@ public class TelegramUpdateHandler {
                 .orElseGet(() -> actionRouter.flowInputForCallback(callbackData).isPresent() ? "FLOW_INPUT" : "UNSUPPORTED");
     }
 
+    private boolean shouldAskLanguage(TelegramUserEntity user, String text) {
+        return user != null && language(user).isEmpty() && isCommand(text);
+    }
+
+    private boolean isCommand(String text) {
+        return text != null && text.strip().startsWith("/");
+    }
+
+    private boolean isLanguageCallback(String callbackData) {
+        return TelegramActionRouter.LANGUAGE_RU.equals(callbackData) || TelegramActionRouter.LANGUAGE_EN.equals(callbackData);
+    }
+
+    private java.util.Optional<UserLanguage> language(TelegramUserEntity user) {
+        return user == null ? java.util.Optional.empty() : user.getLanguage();
+    }
+
+    private String mainMenuCaption(UserLanguage language) {
+        return language == UserLanguage.EN
+                ? "ATLAS\n\nWhat would you like to do now?"
+                : "ATLAS\n\nЧто хочешь сделать сейчас?";
+    }
+
     private void answerCallback(String callbackQueryId, String text) {
         if (callbackQueryId == null || callbackQueryId.isBlank()) {
             return;
@@ -321,6 +415,9 @@ public class TelegramUpdateHandler {
         }
     }
 
-    private record RoutedResponse(String content, RequestType requestType, InlineKeyboardMarkup replyMarkup) {
+    private record RoutedResponse(String content, RequestType requestType, InlineKeyboardMarkup replyMarkup, boolean editPanel) {
+        private RoutedResponse(String content, RequestType requestType, InlineKeyboardMarkup replyMarkup) {
+            this(content, requestType, replyMarkup, false);
+        }
     }
 }

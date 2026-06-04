@@ -15,6 +15,7 @@ import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.safety.SafetyGuard;
 import com.example.atlas.telegram.InlineKeyboardMarkup;
 import com.example.atlas.telegram.TelegramKeyboardFactory;
+import com.example.atlas.user.UserLanguage;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -145,10 +146,13 @@ public class TelegramLifeFlowService {
         conversationStateService.active(user).ifPresent(conversationStateService::cancel);
         LifeProfileEntity profile = lifeProfileService.getOrCreate(user);
         if (profile.isOnboardingCompleted()) {
+            UserLanguage language = language(user);
             return new FlowResult(
-                    "ATLAS\n\nЧто хочешь сделать сейчас?",
+                    language == UserLanguage.EN
+                            ? "ATLAS\n\nWhat would you like to do now?"
+                            : "ATLAS\n\nЧто хочешь сделать сейчас?",
                     RequestType.START,
-                    keyboardFactory.mainMenu()
+                    keyboardFactory.mainMenu(language)
             );
         }
         conversationStateService.start(user, ConversationFlowType.ONBOARDING, "ASK_PRIMARY_LIFE_AREA");
@@ -231,7 +235,7 @@ public class TelegramLifeFlowService {
                 payload.put("life_loops", clean(text));
                 profile.completeOnboarding(now);
                 conversationStateService.complete(state, payload);
-                return new FlowResult("Готово. Я сохранил профиль. Начнём с короткого check-in.", RequestType.START, keyboardFactory.mainMenu());
+                return new FlowResult("Готово. Я сохранил профиль. Начнём с короткого check-in.", RequestType.START, keyboardFactory.mainMenu(language(state.getTelegramUser())));
             }
             default -> {
                 conversationStateService.moveTo(state, "ASK_PRIMARY_LIFE_AREA", payload);
@@ -405,8 +409,17 @@ public class TelegramLifeFlowService {
 
     @Transactional(readOnly = true)
     public String settings(TelegramUserEntity user) {
+        UserLanguage language = language(user);
         Optional<LifeProfileEntity> profile = lifeProfileService.find(user);
         if (profile.isEmpty()) {
+            if (language == UserLanguage.EN) {
+                return """
+                        ATLAS Settings
+
+                        Onboarding: no
+                        Profile has not been completed yet.
+                        """;
+            }
             return """
                     Настройки ATLAS
 
@@ -415,6 +428,21 @@ public class TelegramLifeFlowService {
                     """;
         }
         LifeProfileEntity value = profile.get();
+        if (language == UserLanguage.EN) {
+            return """
+                    ATLAS Settings
+
+                    Onboarding: %s
+                    Primary area: %s
+                    Planning style: %s
+                    Loops: %s
+                    """.formatted(
+                    value.isOnboardingCompleted() ? "yes" : "no",
+                    value.getPrimaryLifeArea() == null ? "not selected" : value.getPrimaryLifeArea().name(),
+                    value.getPlanningStyle() == null ? "not selected" : value.getPlanningStyle().name(),
+                    lifeLoops(value)
+            ).strip();
+        }
         return """
                 Настройки ATLAS
 
@@ -606,6 +634,10 @@ public class TelegramLifeFlowService {
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("не выбраны");
         return selected;
+    }
+
+    private UserLanguage language(TelegramUserEntity user) {
+        return user == null ? UserLanguage.RU : user.getLanguage().orElse(UserLanguage.RU);
     }
 
     public record FlowResult(String content, RequestType requestType, InlineKeyboardMarkup replyMarkup) {

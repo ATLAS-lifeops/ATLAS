@@ -25,6 +25,9 @@ public class TelegramActionRouter {
     public static final String EMERGENCY = "atlas:emergency";
     public static final String SETTINGS_RESTART_CONFIRM = "atlas:settings:restart_confirm";
     public static final String ONBOARDING_RESTART = "atlas:onboarding:restart";
+    public static final String SETTINGS_LANGUAGE = "atlas:settings:language";
+    public static final String LANGUAGE_RU = "atlas:language:ru";
+    public static final String LANGUAGE_EN = "atlas:language:en";
 
     private static final Set<String> LIFE_AREAS = Set.of(
             "DAILY_STRUCTURE",
@@ -52,7 +55,10 @@ public class TelegramActionRouter {
             Map.entry(CANCEL, TelegramAction.CANCEL_FLOW),
             Map.entry(EMERGENCY, TelegramAction.SHOW_EMERGENCY_PLAN),
             Map.entry(SETTINGS_RESTART_CONFIRM, TelegramAction.CONFIRM_RESTART_ONBOARDING),
-            Map.entry(ONBOARDING_RESTART, TelegramAction.RESTART_ONBOARDING)
+            Map.entry(ONBOARDING_RESTART, TelegramAction.RESTART_ONBOARDING),
+            Map.entry(SETTINGS_LANGUAGE, TelegramAction.CHANGE_LANGUAGE),
+            Map.entry(LANGUAGE_RU, TelegramAction.SELECT_LANGUAGE_RU),
+            Map.entry(LANGUAGE_EN, TelegramAction.SELECT_LANGUAGE_EN)
     );
 
     public Optional<TelegramAction> actionForCommand(String text, boolean onboardingCompleted) {
@@ -112,7 +118,8 @@ public class TelegramActionRouter {
             case SHOW_HELP -> RequestType.HELP;
             case CANCEL_FLOW -> RequestType.CANCEL;
             case SHOW_EMERGENCY_PLAN -> RequestType.EMERGENCY;
-            case OPEN_MAIN_MENU, START_QUESTION, OPEN_SETTINGS, CONFIRM_RESTART_ONBOARDING -> RequestType.GENERAL;
+            case OPEN_MAIN_MENU, START_QUESTION, OPEN_SETTINGS, CONFIRM_RESTART_ONBOARDING,
+                    CHANGE_LANGUAGE, SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> RequestType.GENERAL;
         };
     }
 
@@ -127,7 +134,8 @@ public class TelegramActionRouter {
             case SHOW_HELP -> "/help";
             case CANCEL_FLOW -> "/cancel";
             case SHOW_EMERGENCY_PLAN -> "/emergency";
-            case OPEN_MAIN_MENU, START_QUESTION, OPEN_SETTINGS, CONFIRM_RESTART_ONBOARDING -> "";
+            case OPEN_MAIN_MENU, START_QUESTION, OPEN_SETTINGS, CONFIRM_RESTART_ONBOARDING,
+                    CHANGE_LANGUAGE, SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> "";
         };
     }
 
