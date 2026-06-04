@@ -1,6 +1,7 @@
 package com.example.atlas.user.service;
 
 import com.example.atlas.telegram.TelegramUpdate;
+import com.example.atlas.user.UserLanguage;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import com.example.atlas.user.repository.TelegramUserRepository;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -66,6 +67,15 @@ public class TelegramUserService {
                         now
                 ));
         user.updateSeen(callbackQuery.message().chat().id(), stripToNull(from.username()), stripToNull(from.firstName()), now);
+        return repository.save(user);
+    }
+
+    @Transactional
+    public TelegramUserEntity updateLanguage(TelegramUserEntity user, UserLanguage language) {
+        if (user == null || language == null) {
+            return user;
+        }
+        user.updateLanguage(language);
         return repository.save(user);
     }
 

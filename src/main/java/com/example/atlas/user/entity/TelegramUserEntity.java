@@ -5,7 +5,10 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import com.example.atlas.user.UserLanguage;
+
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 @Entity
@@ -26,6 +29,9 @@ public class TelegramUserEntity {
 
     @Column(name = "first_name", length = 255)
     private String firstName;
+
+    @Column(name = "language_code", length = 8)
+    private String languageCode;
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
@@ -71,6 +77,10 @@ public class TelegramUserEntity {
         this.lastSeenAt = lastSeenAt;
     }
 
+    public void updateLanguage(UserLanguage language) {
+        this.languageCode = language == null ? null : language.code();
+    }
+
     public UUID getId() {
         return id;
     }
@@ -89,6 +99,14 @@ public class TelegramUserEntity {
 
     public String getFirstName() {
         return firstName;
+    }
+
+    public String getLanguageCode() {
+        return languageCode;
+    }
+
+    public Optional<UserLanguage> getLanguage() {
+        return UserLanguage.fromCode(languageCode);
     }
 
     public Instant getCreatedAt() {
