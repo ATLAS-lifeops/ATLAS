@@ -1,0 +1,16 @@
+atlas:
+  telegram:
+    enabled: false
+    bot-token: ""
+    bot-username: atlas_test_bot
+    mode: polling
+    register-webhook-on-startup: false
+  llm:
+    enabled: false
+    provider: openai_compatible
+    base-url: ""
+    api-key: ""
+    model: ""
+    day-plan-enabled: false
+    report-enabled: false
+    question-enabled: false

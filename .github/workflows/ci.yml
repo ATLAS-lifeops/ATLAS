@@ -2,11 +2,20 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - master
   pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SPRING_PROFILES_ACTIVE: test
+      ATLAS_TELEGRAM_ENABLED: "false"
+      ATLAS_TELEGRAM_BOT_TOKEN: ""
+      ATLAS_LLM_ENABLED: "false"
+      ATLAS_LLM_API_KEY: ""
 
     steps:
       - name: Check out repository
