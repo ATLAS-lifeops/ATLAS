@@ -110,12 +110,12 @@ public class SetupPageController {
                   <style>
                     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
                     main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-                    section { width: min(100%, 520px); background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 28px; box-shadow: 0 8px 28px rgba(23,32,42,.08); }
+                    section { width: min(100%%, 520px); background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 28px; box-shadow: 0 8px 28px rgba(23,32,42,.08); }
                     h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: 0; }
                     p { margin: 0 0 20px; color: #536471; line-height: 1.5; }
                     label { display: block; margin: 16px 0 6px; font-weight: 700; }
-                    input, select { box-sizing: border-box; width: 100%; padding: 11px 12px; border: 1px solid #c8d0d8; border-radius: 6px; font: inherit; }
-                    button { margin-top: 22px; width: 100%; border: 0; border-radius: 6px; padding: 12px 14px; background: #1565c0; color: #fff; font-weight: 700; font: inherit; cursor: pointer; }
+                    input, select { box-sizing: border-box; width: 100%%; padding: 11px 12px; border: 1px solid #c8d0d8; border-radius: 6px; font: inherit; }
+                    button { margin-top: 22px; width: 100%%; border: 0; border-radius: 6px; padding: 12px 14px; background: #1565c0; color: #fff; font-weight: 700; font: inherit; cursor: pointer; }
                     button:hover { background: #0f559f; }
                     .error { margin: 0 0 16px; padding: 12px; border-radius: 6px; background: #fff1f0; color: #a8071a; border: 1px solid #ffa39e; }
                     .success { margin: 0 0 16px; padding: 12px; border-radius: 6px; background: #f6ffed; color: #237804; border: 1px solid #b7eb8f; }
@@ -184,7 +184,7 @@ public class SetupPageController {
                   <style>
                     body { margin: 0; font-family: Arial, sans-serif; background: #f4f6f8; color: #17202a; }
                     main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-                    section { width: min(100%, 520px); background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 28px; box-shadow: 0 8px 28px rgba(23,32,42,.08); }
+                    section { width: min(100%%, 520px); background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 28px; box-shadow: 0 8px 28px rgba(23,32,42,.08); }
                     h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: 0; }
                     p { color: #536471; line-height: 1.5; }
                     dl { display: grid; grid-template-columns: 150px 1fr; gap: 10px; }

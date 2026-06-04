@@ -23,6 +23,7 @@ services:
       atlas-postgres:
         condition: service_healthy
     environment:
+      SERVER_ADDRESS: 0.0.0.0
       SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL:-jdbc:postgresql://atlas-postgres:5432/atlas}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-atlas}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:-atlas}
