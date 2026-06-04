@@ -137,7 +137,7 @@ public class TelegramWebhookClient {
                     request.url(),
                     request.hasSecretToken() ? request.secretToken() : null,
                     request.dropPendingUpdates(),
-                    List.of("message")
+                    List.of("message", "callback_query")
             );
         }
 

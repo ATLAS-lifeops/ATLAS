@@ -47,6 +47,28 @@ public class TelegramUserService {
         return repository.save(user);
     }
 
+    @Transactional
+    public TelegramUserEntity upsertFromCallbackQuery(TelegramUpdate.TelegramCallbackQuery callbackQuery) {
+        if (callbackQuery == null || callbackQuery.message() == null || callbackQuery.message().chat() == null
+                || callbackQuery.message().chat().id() == null || callbackQuery.from() == null
+                || callbackQuery.from().id() == null) {
+            return null;
+        }
+
+        Instant now = Instant.now(clock);
+        TelegramUpdate.TelegramUser from = callbackQuery.from();
+        TelegramUserEntity user = repository.findByTelegramUserId(from.id())
+                .orElseGet(() -> TelegramUserEntity.create(
+                        from.id(),
+                        callbackQuery.message().chat().id(),
+                        stripToNull(from.username()),
+                        stripToNull(from.firstName()),
+                        now
+                ));
+        user.updateSeen(callbackQuery.message().chat().id(), stripToNull(from.username()), stripToNull(from.firstName()), now);
+        return repository.save(user);
+    }
+
     private String stripToNull(String value) {
         return value == null || value.isBlank() ? null : value.strip();
     }

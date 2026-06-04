@@ -27,6 +27,11 @@ public record TelegramUpdate(
     ) {
     }
 
-    public record TelegramCallbackQuery(String id) {
+    public record TelegramCallbackQuery(
+            String id,
+            TelegramUser from,
+            TelegramMessage message,
+            String data
+    ) {
     }
 }

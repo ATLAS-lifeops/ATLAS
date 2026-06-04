@@ -24,6 +24,8 @@ public class TelegramUpdateHandler {
     private final ObjectProvider<TelegramUserService> userService;
     private final ObjectProvider<TelegramMessagePersistenceService> messagePersistenceService;
     private final ObjectProvider<TelegramLifeFlowService> lifeFlowService;
+    private final TelegramActionRouter actionRouter;
+    private final TelegramKeyboardFactory keyboardFactory;
 
     @Autowired
     public TelegramUpdateHandler(
@@ -32,7 +34,9 @@ public class TelegramUpdateHandler {
             SafetyGuard safetyGuard,
             ObjectProvider<TelegramUserService> userService,
             ObjectProvider<TelegramMessagePersistenceService> messagePersistenceService,
-            ObjectProvider<TelegramLifeFlowService> lifeFlowService
+            ObjectProvider<TelegramLifeFlowService> lifeFlowService,
+            TelegramActionRouter actionRouter,
+            TelegramKeyboardFactory keyboardFactory
     ) {
         this.orchestratorService = orchestratorService;
         this.messageSender = messageSender;
@@ -40,6 +44,8 @@ public class TelegramUpdateHandler {
         this.userService = userService;
         this.messagePersistenceService = messagePersistenceService;
         this.lifeFlowService = lifeFlowService;
+        this.actionRouter = actionRouter;
+        this.keyboardFactory = keyboardFactory;
     }
 
     TelegramUpdateHandler(
@@ -53,9 +59,15 @@ public class TelegramUpdateHandler {
         this.userService = null;
         this.messagePersistenceService = null;
         this.lifeFlowService = null;
+        this.actionRouter = new TelegramActionRouter();
+        this.keyboardFactory = new TelegramKeyboardFactory();
     }
 
     public boolean handleUpdate(TelegramUpdate update) {
+        if (update != null && update.callbackQuery() != null) {
+            return handleCallbackQuery(update);
+        }
+
         if (update == null || update.message() == null) {
             log.info(
                     "Telegram update handled: update_id={}, chat_id={}, handled={}, reason={}",
@@ -96,7 +108,7 @@ public class TelegramUpdateHandler {
 
         RoutedResponse routedResponse = handleTextMessage(user, message.text(), requestType);
         String response = routedResponse.content();
-        messageSender.sendText(message.chat().id(), response);
+        messageSender.sendText(message.chat().id(), response, routedResponse.replyMarkup());
         recordOutgoing(user, message.chat().id(), routedResponse.requestType(), response);
         log.info(
                 "Telegram update handled: update_id={}, chat_id={}, handled={}, request_type={}",
@@ -104,6 +116,39 @@ public class TelegramUpdateHandler {
                 message.chat().id(),
                 true,
                 routedResponse.requestType()
+        );
+        return true;
+    }
+
+    private boolean handleCallbackQuery(TelegramUpdate update) {
+        TelegramUpdate.TelegramCallbackQuery callbackQuery = update.callbackQuery();
+        Long chatId = callbackChatId(callbackQuery);
+        String callbackData = callbackQuery.data();
+        if (callbackQuery.id() == null || callbackQuery.id().isBlank() || chatId == null
+                || callbackData == null || callbackData.isBlank()) {
+            log.info(
+                    "Telegram callback handled: update_id={}, telegram_user_id={}, action={}, handled={}, reason={}",
+                    updateId(update),
+                    callbackUserId(callbackQuery),
+                    null,
+                    false,
+                    "invalid_callback"
+            );
+            answerCallback(callbackQuery.id(), null);
+            return false;
+        }
+
+        TelegramUserEntity user = upsertUser(callbackQuery);
+        RoutedResponse response = routeCallback(user, callbackData);
+        messageSender.sendText(chatId, response.content(), response.replyMarkup());
+        recordOutgoing(user, chatId, response.requestType(), response.content());
+        answerCallback(callbackQuery.id(), null);
+        log.info(
+                "Telegram callback handled: update_id={}, telegram_user_id={}, action={}, handled={}",
+                updateId(update),
+                callbackUserId(callbackQuery),
+                safeActionName(callbackData),
+                true
         );
         return true;
     }
@@ -124,19 +169,106 @@ public class TelegramUpdateHandler {
         TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
         if (service != null) {
             return service.handle(user, text, requestType)
-                    .map(result -> new RoutedResponse(result.content(), result.requestType()))
+                    .map(result -> new RoutedResponse(
+                            result.content(),
+                            result.requestType(),
+                            result.replyMarkup() == null ? keyboardFactory.forRequest(result.requestType()) : result.replyMarkup()
+                    ))
                     .orElseGet(() -> fallbackResponse(text, requestType));
         }
         return fallbackResponse(text, requestType);
     }
 
     private RoutedResponse fallbackResponse(String text, RequestType requestType) {
-        return new RoutedResponse(handleTextMessage(text, requestType), requestType);
+        return new RoutedResponse(handleTextMessage(text, requestType), requestType, keyboardFactory.forRequest(requestType));
+    }
+
+    private RoutedResponse routeCallback(TelegramUserEntity user, String callbackData) {
+        TelegramLifeFlowService service = lifeFlowService == null ? null : lifeFlowService.getIfAvailable();
+        if (!actionRouter.isSupportedCallback(callbackData)) {
+            return new RoutedResponse(
+                    "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
+                    RequestType.GENERAL,
+                    keyboardFactory.mainMenu()
+            );
+        }
+
+        return actionRouter.flowInputForCallback(callbackData)
+                .map(input -> routeFlowInput(user, input))
+                .orElseGet(() -> actionRouter.actionForCallback(callbackData)
+                        .map(action -> routeAction(user, action, service))
+                        .orElseGet(() -> new RoutedResponse(
+                                "Не получилось обработать кнопку. Открой меню и выбери действие ещё раз.",
+                                RequestType.GENERAL,
+                                keyboardFactory.mainMenu()
+                        )));
+    }
+
+    private RoutedResponse routeFlowInput(TelegramUserEntity user, String input) {
+        return handleTextMessage(user, input, RequestType.GENERAL);
+    }
+
+    private RoutedResponse routeAction(TelegramUserEntity user, TelegramAction action, TelegramLifeFlowService service) {
+        if (action == TelegramAction.OPEN_MAIN_MENU) {
+            return mainMenu();
+        }
+        if (action == TelegramAction.START_QUESTION) {
+            return questionEntry();
+        }
+        if (action == TelegramAction.OPEN_SETTINGS) {
+            return settings(user, service);
+        }
+        if (action == TelegramAction.CONFIRM_RESTART_ONBOARDING) {
+            return new RoutedResponse(
+                    "Перезапустить onboarding и обновить профиль?",
+                    RequestType.GENERAL,
+                    keyboardFactory.restartConfirmation()
+            );
+        }
+        if (action == TelegramAction.RESTART_ONBOARDING && service != null && user != null) {
+            TelegramLifeFlowService.FlowResult result = service.restartOnboarding(user);
+            return new RoutedResponse(result.content(), result.requestType(), result.replyMarkup());
+        }
+        RequestType requestType = actionRouter.requestType(action);
+        String command = actionRouter.commandForAction(action);
+        return handleTextMessage(user, command, requestType);
+    }
+
+    private RoutedResponse mainMenu() {
+        return new RoutedResponse(
+                "ATLAS\n\nЧто хочешь сделать сейчас?",
+                RequestType.GENERAL,
+                keyboardFactory.mainMenu()
+        );
+    }
+
+    private RoutedResponse questionEntry() {
+        return new RoutedResponse(
+                """
+                Пока я лучше всего работаю через сценарии: check-in, план дня, привычки, вечерняя рефлексия и отчёт.
+
+                Выбери раздел ниже или напиши вопрос — я постараюсь направить его в подходящий сценарий.
+                """,
+                RequestType.GENERAL,
+                keyboardFactory.questionActions()
+        );
+    }
+
+    private RoutedResponse settings(TelegramUserEntity user, TelegramLifeFlowService service) {
+        String content = service == null || user == null
+                ? "Настройки ATLAS\n\nПрофиль доступен после запуска Telegram persistence."
+                : service.settings(user);
+        return new RoutedResponse(content, RequestType.GENERAL, keyboardFactory.settingsActions());
     }
 
     private TelegramUserEntity upsertUser(TelegramUpdate.TelegramMessage message) {
         TelegramUserService service = userService == null ? null : userService.getIfAvailable();
         return service == null ? null : service.upsertFromMessage(message);
+    }
+
+    private TelegramUserEntity upsertUser(TelegramUpdate.TelegramCallbackQuery callbackQuery) {
+        TelegramUserService service = userService == null ? null : userService.getIfAvailable();
+        return service == null ? null : service.upsertFromCallbackQuery(callbackQuery);
     }
 
     private void recordIncoming(TelegramUserEntity user, Long chatId, RequestType requestType, String text) {
@@ -157,6 +289,38 @@ public class TelegramUpdateHandler {
         return update == null ? null : update.updateId();
     }
 
-    private record RoutedResponse(String content, RequestType requestType) {
+    private Long callbackChatId(TelegramUpdate.TelegramCallbackQuery callbackQuery) {
+        if (callbackQuery == null || callbackQuery.message() == null || callbackQuery.message().chat() == null) {
+            return null;
+        }
+        return callbackQuery.message().chat().id();
+    }
+
+    private Long callbackUserId(TelegramUpdate.TelegramCallbackQuery callbackQuery) {
+        return callbackQuery == null || callbackQuery.from() == null ? null : callbackQuery.from().id();
+    }
+
+    private String safeActionName(String callbackData) {
+        return actionRouter.actionForCallback(callbackData)
+                .map(Enum::name)
+                .orElseGet(() -> actionRouter.flowInputForCallback(callbackData).isPresent() ? "FLOW_INPUT" : "UNSUPPORTED");
+    }
+
+    private void answerCallback(String callbackQueryId, String text) {
+        if (callbackQueryId == null || callbackQueryId.isBlank()) {
+            return;
+        }
+        try {
+            messageSender.answerCallbackQuery(callbackQueryId, text);
+        } catch (RuntimeException exception) {
+            log.warn(
+                    "Telegram answerCallbackQuery failed: callback_query_id={}, error_type={}",
+                    callbackQueryId,
+                    exception.getClass().getSimpleName()
+            );
+        }
+    }
+
+    private record RoutedResponse(String content, RequestType requestType, InlineKeyboardMarkup replyMarkup) {
     }
 }

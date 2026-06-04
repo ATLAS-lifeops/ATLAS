@@ -31,13 +31,21 @@ public class TelegramBotApiClient implements TelegramApiClient {
 
     @Override
     public void sendMessage(long chatId, String text) {
+        sendMessage(chatId, text, null);
+    }
+
+    @Override
+    public void sendMessage(long chatId, String text, InlineKeyboardMarkup replyMarkup) {
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("chat_id", chatId);
+        body.put("text", text);
+        if (replyMarkup != null) {
+            body.put("reply_markup", replyMarkup);
+        }
         restClient()
                 .post()
                 .uri("/sendMessage")
-                .body(Map.of(
-                        "chat_id", chatId,
-                        "text", text
-                ))
+                .body(body)
                 .retrieve()
                 .toBodilessEntity();
     }
@@ -50,7 +58,7 @@ public class TelegramBotApiClient implements TelegramApiClient {
                         .path("/getUpdates")
                         .queryParam("offset", Math.max(offset, 0))
                         .queryParam("timeout", Math.max(timeoutSeconds, 0))
-                        .queryParam("allowed_updates", "[\"message\"]")
+                        .queryParam("allowed_updates", "[\"message\",\"callback_query\"]")
                         .build())
                 .retrieve()
                 .body(TelegramGetUpdatesResponse.class);
@@ -59,6 +67,28 @@ public class TelegramBotApiClient implements TelegramApiClient {
             throw new TelegramApiException("Telegram getUpdates was rejected by Telegram API.");
         }
         return response.result() == null ? List.of() : response.result();
+    }
+
+    @Override
+    public void answerCallbackQuery(String callbackQueryId, String text) {
+        if (callbackQueryId == null || callbackQueryId.isBlank()) {
+            return;
+        }
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("callback_query_id", callbackQueryId);
+        if (text != null && !text.isBlank()) {
+            body.put("text", text.strip());
+        }
+        TelegramApiResponse response = restClient()
+                .post()
+                .uri("/answerCallbackQuery")
+                .body(body)
+                .retrieve()
+                .body(TelegramApiResponse.class);
+
+        if (response == null || !response.ok()) {
+            throw new TelegramApiException("Telegram answerCallbackQuery was rejected by Telegram API.");
+        }
     }
 
     @Override

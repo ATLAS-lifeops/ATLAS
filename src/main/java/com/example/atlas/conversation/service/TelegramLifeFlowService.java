@@ -13,6 +13,8 @@ import com.example.atlas.life.service.WeeklyLifeReportService;
 import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.safety.SafetyGuard;
+import com.example.atlas.telegram.InlineKeyboardMarkup;
+import com.example.atlas.telegram.TelegramKeyboardFactory;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -45,6 +47,29 @@ public class TelegramLifeFlowService {
     private final LifeDayPlanService dayPlanService;
     private final WeeklyLifeReportService weeklyReportService;
     private final SafetyGuard safetyGuard;
+    private final TelegramKeyboardFactory keyboardFactory;
+
+    public TelegramLifeFlowService(
+            ConversationStateService conversationStateService,
+            LifeProfileService lifeProfileService,
+            CheckInPersistenceService checkInPersistenceService,
+            HabitService habitService,
+            EveningReflectionService reflectionService,
+            LifeDayPlanService dayPlanService,
+            WeeklyLifeReportService weeklyReportService,
+            SafetyGuard safetyGuard,
+            TelegramKeyboardFactory keyboardFactory
+    ) {
+        this.conversationStateService = conversationStateService;
+        this.lifeProfileService = lifeProfileService;
+        this.checkInPersistenceService = checkInPersistenceService;
+        this.habitService = habitService;
+        this.reflectionService = reflectionService;
+        this.dayPlanService = dayPlanService;
+        this.weeklyReportService = weeklyReportService;
+        this.safetyGuard = safetyGuard;
+        this.keyboardFactory = keyboardFactory;
+    }
 
     public TelegramLifeFlowService(
             ConversationStateService conversationStateService,
@@ -56,14 +81,17 @@ public class TelegramLifeFlowService {
             WeeklyLifeReportService weeklyReportService,
             SafetyGuard safetyGuard
     ) {
-        this.conversationStateService = conversationStateService;
-        this.lifeProfileService = lifeProfileService;
-        this.checkInPersistenceService = checkInPersistenceService;
-        this.habitService = habitService;
-        this.reflectionService = reflectionService;
-        this.dayPlanService = dayPlanService;
-        this.weeklyReportService = weeklyReportService;
-        this.safetyGuard = safetyGuard;
+        this(
+                conversationStateService,
+                lifeProfileService,
+                checkInPersistenceService,
+                habitService,
+                reflectionService,
+                dayPlanService,
+                weeklyReportService,
+                safetyGuard,
+                new TelegramKeyboardFactory()
+        );
     }
 
     @Transactional
@@ -76,7 +104,7 @@ public class TelegramLifeFlowService {
             return Optional.of(cancel(user));
         }
         if (requestType == RequestType.HELP) {
-            return Optional.of(new FlowResult(help(), requestType));
+            return Optional.of(new FlowResult(help(), requestType, keyboardFactory.help()));
         }
         if (requestType == RequestType.START) {
             return Optional.of(startOnboardingOrWelcomeBack(user));
@@ -86,7 +114,7 @@ public class TelegramLifeFlowService {
         }
         if (requestType == RequestType.DAY_PLAN) {
             conversationStateService.active(user).ifPresent(conversationStateService::cancel);
-            return Optional.of(new FlowResult(dayPlanService.dayPlan(user), requestType));
+            return Optional.of(new FlowResult(dayPlanService.dayPlan(user), requestType, keyboardFactory.dayPlanActions()));
         }
         if (requestType == RequestType.HABITS) {
             return Optional.of(startFlow(user, ConversationFlowType.HABIT_TRACKING, "ASK_HABIT", "Какую одну привычку сегодня отслеживаем?"));
@@ -96,11 +124,11 @@ public class TelegramLifeFlowService {
         }
         if (requestType == RequestType.REPORT) {
             conversationStateService.active(user).ifPresent(conversationStateService::cancel);
-            return Optional.of(new FlowResult(weeklyReportService.weeklyReport(user), requestType));
+            return Optional.of(new FlowResult(weeklyReportService.weeklyReport(user), requestType, keyboardFactory.reportActions()));
         }
         if (requestType == RequestType.EMERGENCY) {
             conversationStateService.active(user).ifPresent(conversationStateService::cancel);
-            return Optional.of(new FlowResult(emergency(text), requestType));
+            return Optional.of(new FlowResult(emergency(text), requestType, keyboardFactory.backToMenu()));
         }
 
         if (!isCommand(text)) {
@@ -118,26 +146,27 @@ public class TelegramLifeFlowService {
         LifeProfileEntity profile = lifeProfileService.getOrCreate(user);
         if (profile.isOnboardingCompleted()) {
             return new FlowResult(
-                    "С возвращением. Можно продолжить: /checkin, /day, /habits, /evening, /report или /emergency.",
-                    RequestType.START
+                    "ATLAS\n\nЧто хочешь сделать сейчас?",
+                    RequestType.START,
+                    keyboardFactory.mainMenu()
             );
         }
         conversationStateService.start(user, ConversationFlowType.ONBOARDING, "ASK_PRIMARY_LIFE_AREA");
-        return new FlowResult(onboardingIntro(), RequestType.START);
+        return new FlowResult(onboardingIntro(), RequestType.START, keyboardFactory.onboardingLifeAreas());
     }
 
     private FlowResult handleCheckinCommand(TelegramUserEntity user, String text) {
         if (hasStructuredCheckinValues(text)) {
             checkInPersistenceService.record(user, text);
             String safety = safetyGuard.requiresSafetyResponse(text) ? "\n\n" + safetyGuard.safetyResponse() : "";
-            return new FlowResult("Check-in сохранён. Используй /day, чтобы собрать реалистичный план дня." + safety, RequestType.CHECKIN);
+            return new FlowResult("Check-in сохранён. Используй /day, чтобы собрать реалистичный план дня." + safety, RequestType.CHECKIN, keyboardFactory.dayPlanActions());
         }
         return startFlow(user, ConversationFlowType.DAILY_CHECKIN, "ASK_ENERGY", "Оцени энергию от 1 до 10.");
     }
 
     private FlowResult startFlow(TelegramUserEntity user, ConversationFlowType flowType, String step, String prompt) {
-        conversationStateService.start(user, flowType, step);
-        return new FlowResult(prompt, requestType(flowType));
+        ConversationStateEntity state = conversationStateService.start(user, flowType, step);
+        return new FlowResult(prompt, requestType(flowType), keyboardFactory.forActiveStep(state));
     }
 
     private FlowResult continueFlow(ConversationStateEntity state, String text) {
@@ -160,7 +189,7 @@ public class TelegramLifeFlowService {
                 profile.updatePrimaryLifeArea(area, now);
                 payload.put("primary_life_area", area.name());
                 conversationStateService.moveTo(state, "ASK_CURRENT_FOCUS", payload);
-                return new FlowResult("Что сейчас важнее всего привести в порядок? Ответь коротко одной фразой.", RequestType.START);
+                return new FlowResult("Что сейчас важнее всего привести в порядок? Ответь коротко одной фразой.", RequestType.START, keyboardFactory.forActiveStep(state));
             }
             case "ASK_CURRENT_FOCUS" -> {
                 payload.put("current_focus", clean(text));
@@ -171,7 +200,7 @@ public class TelegramLifeFlowService {
                         1 - Минимальный
                         2 - Сбалансированный
                         3 - Подробный
-                        """, RequestType.START);
+                        """, RequestType.START, keyboardFactory.planningStyles());
             }
             case "ASK_PLANNING_STYLE" -> {
                 PlanningStyle style = parsePlanningStyle(text);
@@ -186,7 +215,7 @@ public class TelegramLifeFlowService {
                         4 - Питание
                         5 - Движение
                         6 - Фокус и задачи
-                        """, RequestType.START);
+                        """, RequestType.START, keyboardFactory.forActiveStep(state));
             }
             case "ASK_MAIN_LOOPS" -> {
                 String loops = text == null ? "" : text;
@@ -202,11 +231,11 @@ public class TelegramLifeFlowService {
                 payload.put("life_loops", clean(text));
                 profile.completeOnboarding(now);
                 conversationStateService.complete(state, payload);
-                return new FlowResult("Готово. Я сохранил профиль. Начнём с короткого check-in - напиши /checkin.", RequestType.START);
+                return new FlowResult("Готово. Я сохранил профиль. Начнём с короткого check-in.", RequestType.START, keyboardFactory.mainMenu());
             }
             default -> {
                 conversationStateService.moveTo(state, "ASK_PRIMARY_LIFE_AREA", payload);
-                return new FlowResult(onboardingIntro(), RequestType.START);
+                return new FlowResult(onboardingIntro(), RequestType.START, keyboardFactory.onboardingLifeAreas());
             }
         }
     }
@@ -217,52 +246,52 @@ public class TelegramLifeFlowService {
             case "ASK_ENERGY" -> {
                 Integer value = parseScore(text);
                 if (value == null) {
-                    return new FlowResult("Нужно число от 1 до 10. Оцени энергию от 1 до 10.", RequestType.CHECKIN);
+                    return new FlowResult("Нужно число от 1 до 10. Оцени энергию от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("energy"));
                 }
                 payload.put("energy", value.toString());
                 conversationStateService.moveTo(state, "ASK_FOCUS", payload);
-                return new FlowResult("Оцени фокус от 1 до 10.", RequestType.CHECKIN);
+                return new FlowResult("Оцени фокус от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("focus"));
             }
             case "ASK_FOCUS" -> {
                 Integer value = parseScore(text);
                 if (value == null) {
-                    return new FlowResult("Нужно число от 1 до 10. Оцени фокус от 1 до 10.", RequestType.CHECKIN);
+                    return new FlowResult("Нужно число от 1 до 10. Оцени фокус от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("focus"));
                 }
                 payload.put("focus", value.toString());
                 conversationStateService.moveTo(state, "ASK_STRESS", payload);
-                return new FlowResult("Оцени стресс от 1 до 10.", RequestType.CHECKIN);
+                return new FlowResult("Оцени стресс от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("stress"));
             }
             case "ASK_STRESS" -> {
                 Integer value = parseScore(text);
                 if (value == null) {
-                    return new FlowResult("Нужно число от 1 до 10. Оцени стресс от 1 до 10.", RequestType.CHECKIN);
+                    return new FlowResult("Нужно число от 1 до 10. Оцени стресс от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("stress"));
                 }
                 payload.put("stress", value.toString());
                 conversationStateService.moveTo(state, "ASK_SLEEP", payload);
-                return new FlowResult("Оцени сон от 1 до 10.", RequestType.CHECKIN);
+                return new FlowResult("Оцени сон от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("sleep"));
             }
             case "ASK_SLEEP" -> {
                 Integer value = parseScore(text);
                 if (value == null) {
-                    return new FlowResult("Нужно число от 1 до 10. Оцени сон от 1 до 10.", RequestType.CHECKIN);
+                    return new FlowResult("Нужно число от 1 до 10. Оцени сон от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("sleep"));
                 }
                 payload.put("sleep", value.toString());
                 conversationStateService.moveTo(state, "ASK_MOOD", payload);
-                return new FlowResult("Оцени настроение от 1 до 10.", RequestType.CHECKIN);
+                return new FlowResult("Оцени настроение от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("mood"));
             }
             case "ASK_MOOD" -> {
                 Integer value = parseScore(text);
                 if (value == null) {
-                    return new FlowResult("Нужно число от 1 до 10. Оцени настроение от 1 до 10.", RequestType.CHECKIN);
+                    return new FlowResult("Нужно число от 1 до 10. Оцени настроение от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("mood"));
                 }
                 payload.put("mood", value.toString());
                 conversationStateService.moveTo(state, "ASK_MAIN_PRIORITY", payload);
-                return new FlowResult("Что сегодня главное?", RequestType.CHECKIN);
+                return new FlowResult("Что сегодня главное?", RequestType.CHECKIN, keyboardFactory.forActiveStep(state));
             }
             case "ASK_MAIN_PRIORITY" -> {
                 payload.put("main_priority", clean(text));
                 conversationStateService.moveTo(state, "ASK_OVERLOAD_SIGNAL", payload);
-                return new FlowResult("Есть ли боль, сильный перегруз или тревожный симптом? Ответь да/нет и добавь пару слов, если нужно.", RequestType.CHECKIN);
+                return new FlowResult("Есть ли боль, сильный перегруз или тревожный симптом? Ответь да/нет и добавь пару слов, если нужно.", RequestType.CHECKIN, keyboardFactory.yesNo("atlas:checkin:overload:yes", "atlas:checkin:overload:no"));
             }
             case "ASK_OVERLOAD_SIGNAL" -> {
                 payload.put("overload_signal", clean(text));
@@ -292,11 +321,11 @@ public class TelegramLifeFlowService {
                         payload.get("sleep"),
                         payload.get("mood"),
                         payload.get("main_priority")
-                ).strip() + safety, RequestType.CHECKIN);
+                ).strip() + safety, RequestType.CHECKIN, keyboardFactory.dayPlanActions());
             }
             default -> {
                 conversationStateService.moveTo(state, "ASK_ENERGY", payload);
-                return new FlowResult("Оцени энергию от 1 до 10.", RequestType.CHECKIN);
+                return new FlowResult("Оцени энергию от 1 до 10.", RequestType.CHECKIN, keyboardFactory.score("energy"));
             }
         }
     }
@@ -307,12 +336,12 @@ public class TelegramLifeFlowService {
             case "ASK_HABIT" -> {
                 payload.put("habit", clean(text));
                 conversationStateService.moveTo(state, "ASK_MINIMUM_VERSION", payload);
-                return new FlowResult("Какая минимальная версия этой привычки займёт 2-5 минут?", RequestType.HABITS);
+                return new FlowResult("Какая минимальная версия этой привычки займёт 2-5 минут?", RequestType.HABITS, keyboardFactory.forActiveStep(state));
             }
             case "ASK_MINIMUM_VERSION" -> {
                 payload.put("minimum_version", clean(text));
                 conversationStateService.moveTo(state, "ASK_COMPLETION", payload);
-                return new FlowResult("Сегодня она уже выполнена? Да/нет.", RequestType.HABITS);
+                return new FlowResult("Сегодня она уже выполнена? Да/нет.", RequestType.HABITS, keyboardFactory.yesNo("atlas:habit:completed:yes", "atlas:habit:completed:no"));
             }
             case "ASK_COMPLETION" -> {
                 boolean completed = yes(text);
@@ -325,11 +354,11 @@ public class TelegramLifeFlowService {
                         clean(text)
                 );
                 conversationStateService.complete(state, payload);
-                return new FlowResult("Привычка сохранена. Минимальная версия: " + payload.get("minimum_version") + ".", RequestType.HABITS);
+                return new FlowResult("Привычка сохранена. Минимальная версия: " + payload.get("minimum_version") + ".", RequestType.HABITS, keyboardFactory.habitCompleteActions());
             }
             default -> {
                 conversationStateService.moveTo(state, "ASK_HABIT", payload);
-                return new FlowResult("Какую одну привычку сегодня отслеживаем?", RequestType.HABITS);
+                return new FlowResult("Какую одну привычку сегодня отслеживаем?", RequestType.HABITS, keyboardFactory.forActiveStep(state));
             }
         }
     }
@@ -340,12 +369,12 @@ public class TelegramLifeFlowService {
             case "ASK_MAIN_RESULT" -> {
                 payload.put("main_result", clean(text));
                 conversationStateService.moveTo(state, "ASK_MAIN_BLOCKER", payload);
-                return new FlowResult("Что мешало ритму?", RequestType.EVENING_REFLECTION);
+                return new FlowResult("Что мешало ритму?", RequestType.EVENING_REFLECTION, keyboardFactory.forActiveStep(state));
             }
             case "ASK_MAIN_BLOCKER" -> {
                 payload.put("main_blocker", clean(text));
                 conversationStateService.moveTo(state, "ASK_TOMORROW_FOCUS", payload);
-                return new FlowResult("Что стоит упростить или взять в фокус завтра?", RequestType.EVENING_REFLECTION);
+                return new FlowResult("Что стоит упростить или взять в фокус завтра?", RequestType.EVENING_REFLECTION, keyboardFactory.forActiveStep(state));
             }
             case "ASK_TOMORROW_FOCUS" -> {
                 payload.put("tomorrow_focus", clean(text));
@@ -356,11 +385,11 @@ public class TelegramLifeFlowService {
                         payload.get("tomorrow_focus")
                 );
                 conversationStateService.complete(state, payload);
-                return new FlowResult("Рефлексия сохранена. Завтра держим фокус: " + payload.get("tomorrow_focus") + ".", RequestType.EVENING_REFLECTION);
+                return new FlowResult("Рефлексия сохранена. Завтра держим фокус: " + payload.get("tomorrow_focus") + ".", RequestType.EVENING_REFLECTION, keyboardFactory.eveningCompleteActions());
             }
             default -> {
                 conversationStateService.moveTo(state, "ASK_MAIN_RESULT", payload);
-                return new FlowResult("Что сегодня получилось?", RequestType.EVENING_REFLECTION);
+                return new FlowResult("Что сегодня получилось?", RequestType.EVENING_REFLECTION, keyboardFactory.forActiveStep(state));
             }
         }
     }
@@ -371,7 +400,42 @@ public class TelegramLifeFlowService {
         String text = active.isPresent()
                 ? "Текущий сценарий отменён. Можно начать заново: /checkin, /day, /habits, /evening или /report."
                 : "Активного сценария нет. Можно начать: /checkin, /day, /habits, /evening или /report.";
-        return new FlowResult(text, RequestType.CANCEL);
+        return new FlowResult(text, RequestType.CANCEL, keyboardFactory.backToMenu());
+    }
+
+    @Transactional(readOnly = true)
+    public String settings(TelegramUserEntity user) {
+        Optional<LifeProfileEntity> profile = lifeProfileService.find(user);
+        if (profile.isEmpty()) {
+            return """
+                    Настройки ATLAS
+
+                    Onboarding: нет
+                    Профиль ещё не заполнен.
+                    """;
+        }
+        LifeProfileEntity value = profile.get();
+        return """
+                Настройки ATLAS
+
+                Onboarding: %s
+                Главная область: %s
+                Стиль планирования: %s
+                Контуры: %s
+                """.formatted(
+                value.isOnboardingCompleted() ? "да" : "нет",
+                value.getPrimaryLifeArea() == null ? "не выбрана" : value.getPrimaryLifeArea().name(),
+                value.getPlanningStyle() == null ? "не выбран" : value.getPlanningStyle().name(),
+                lifeLoops(value)
+        ).strip();
+    }
+
+    @Transactional
+    public FlowResult restartOnboarding(TelegramUserEntity user) {
+        conversationStateService.active(user).ifPresent(conversationStateService::cancel);
+        lifeProfileService.getOrCreate(user);
+        conversationStateService.start(user, ConversationFlowType.ONBOARDING, "ASK_PRIMARY_LIFE_AREA");
+        return new FlowResult(onboardingIntro(), RequestType.START, keyboardFactory.onboardingLifeAreas());
     }
 
     private String onboardingIntro() {
@@ -528,6 +592,25 @@ public class TelegramLifeFlowService {
         return value == null ? "" : value.strip();
     }
 
-    public record FlowResult(String content, RequestType requestType) {
+    private String lifeLoops(LifeProfileEntity profile) {
+        Map<String, Boolean> loops = new LinkedHashMap<>();
+        loops.put("сон", profile.isSleepFocus());
+        loops.put("энергия/стресс", profile.isStressFocus());
+        loops.put("привычки", profile.isHabitFocus());
+        loops.put("питание", profile.isNutritionFocus());
+        loops.put("движение", profile.isMovementFocus());
+        loops.put("фокус", profile.isStressFocus());
+        String selected = loops.entrySet().stream()
+                .filter(Map.Entry::getValue)
+                .map(Map.Entry::getKey)
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("не выбраны");
+        return selected;
+    }
+
+    public record FlowResult(String content, RequestType requestType, InlineKeyboardMarkup replyMarkup) {
+        public FlowResult(String content, RequestType requestType) {
+            this(content, requestType, null);
+        }
     }
 }

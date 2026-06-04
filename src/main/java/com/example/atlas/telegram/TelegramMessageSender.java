@@ -21,11 +21,16 @@ public class TelegramMessageSender {
     }
 
     public void sendText(long chatId, String text) {
+        sendText(chatId, text, null);
+    }
+
+    public void sendText(long chatId, String text, InlineKeyboardMarkup replyMarkup) {
         List<String> chunks = splitText(text);
         for (int index = 0; index < chunks.size(); index++) {
             String chunk = chunks.get(index);
             try {
-                telegramApiClient.sendMessage(chatId, chunk);
+                InlineKeyboardMarkup chunkMarkup = index == chunks.size() - 1 ? replyMarkup : null;
+                telegramApiClient.sendMessage(chatId, chunk, chunkMarkup);
                 log.info(
                         "Telegram sendMessage succeeded: chat_id={}, chunk_index={}, chunk_count={}",
                         chatId,
@@ -69,6 +74,10 @@ public class TelegramMessageSender {
         }
 
         return chunks;
+    }
+
+    public void answerCallbackQuery(String callbackQueryId, String text) {
+        telegramApiClient.answerCallbackQuery(callbackQueryId, text);
     }
 
     private int findSplitBoundary(String text, int start, int end) {

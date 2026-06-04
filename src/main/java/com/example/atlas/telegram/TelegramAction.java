@@ -1,0 +1,18 @@
+package com.example.atlas.telegram;
+
+public enum TelegramAction {
+    OPEN_MAIN_MENU,
+    START_ONBOARDING,
+    SHOW_DAY_PLAN,
+    START_CHECKIN,
+    START_HABITS,
+    START_EVENING,
+    SHOW_WEEKLY_REPORT,
+    START_QUESTION,
+    OPEN_SETTINGS,
+    SHOW_HELP,
+    CANCEL_FLOW,
+    SHOW_EMERGENCY_PLAN,
+    CONFIRM_RESTART_ONBOARDING,
+    RESTART_ONBOARDING
+}
