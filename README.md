@@ -1,108 +1,118 @@
 <p align="center">
-  <img src="assets/logo.png" alt="ATLAS logo" width="160">
+  <img src="assets/Readme.png" alt="ATLAS banner">
 </p>
 
-<h1 align="center">ATLAS</h1>
 
-**ATLAS** — backend-first Telegram-система для состояния, фокуса, привычек, планирования, рефлексии и прогресса.
 
-Проект задуман как мультиагентный Telegram-ассистент: пользователь общается с одним ботом, а backend маршрутизирует запросы к специализированным агентам ATLAS.
+<p align="center">
+  <img src="https://img.shields.io/badge/Java-21-blue" alt="Java 21">
+  <img src="https://img.shields.io/badge/Spring%20Boot-Backend-brightgreen" alt="Spring Boot">
+  <img src="https://img.shields.io/badge/PostgreSQL-Persistence-blue" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Flyway-Migrations-red" alt="Flyway">
+  <img src="https://img.shields.io/badge/Maven-Build-orange" alt="Maven">
+  <img src="https://img.shields.io/badge/Docker-Local%20Run-blue" alt="Docker">
+  <img src="https://img.shields.io/badge/Telegram-Bot%20API-2CA5E0" alt="Telegram Bot API">
+  <img src="https://img.shields.io/badge/LLM-Optional-purple" alt="Optional LLM">
+</p>
 
-Фронтенд, лендинг и веб-кабинет не входят в основную дорожную карту этого репозитория и могут развиваться отдельно позже.
+---
+
+<h2 align="center">Описание проекта</h2>
+
+**ATLAS** — это backend-first Telegram-продукт для управления повседневной жизнью через одного бота.
+
+**Идея проекта** — собрать в одном Telegram-интерфейсе сценарии, которые обычно размазаны по разным приложениям: планирование, чек-ины, привычки, фокус, тренировки, восстановление, питание и недельную рефлексию.
+
+Пользователь общается с одним ботом, а backend маршрутизирует запросы к специализированным агентам ATLAS.
+
+ATLAS не является фронтенд-приложением, лендингом или веб-кабинетом. Основной фокус этого репозитория — backend, Telegram-интеграция, хранение данных, сценарии общения и агентная архитектура.
+
+---
 
 <h2 align="center">Core Scope</h2>
 
-- Telegram-first backend-продукт
-- Spring Boot приложение с хранением данных в PostgreSQL
-- оркестрация агентов для повседневных сценариев пользователя
-- безопасная обработка Telegram-команд
+```mermaid id="ehg4wl"
+flowchart TD
+    User["Пользователь"] --> Telegram["Telegram Bot"]
 
-<h2 align="center">Agents</h2>
+    Telegram --> Adapter["Telegram Adapter"]
+    Adapter --> Core["ATLAS Core"]
 
-| Агент | Ответственность |
-|---|---|
-| ATLAS Core | оркестрация и маршрутизация |
-| ATLAS Coach | спорт, тренировки, нагрузка |
-| ATLAS Planner | планирование дня и недели |
-| ATLAS Recovery | сон, усталость, восстановление |
-| ATLAS Habits | привычки, дисциплина, ритм |
-| ATLAS Fuel | поддержка питания |
-| ATLAS Report | недельная аналитика и прогресс |
+    Core --> Routing["Маршрутизация сценариев"]
+    Core --> State["Состояние диалогов"]
+    Core --> Storage["PostgreSQL / Flyway"]
+    Core --> Agents["Агенты ATLAS"]
+    Core --> LLM["Опциональный LLM Provider"]
 
-<h2 align="center">Commands</h2>
+    Agents --> Planner["Планирование"]
+    Agents --> Coach["Тренировки"]
+    Agents --> Reflection["Рефлексия"]
 
-```text
-/start
-/day
-/week
-/workout
-/checkin
-/recovery
-/habits
-/evening
-/review
-/food
-/report
-/cancel
-/clear
-/help
-/emergency
+    LLM --> Fallback["Deterministic fallback"]
 ```
 
-<h2 align="center">Stack</h2>
+ATLAS Core отвечает за:
 
-- Java 21
-- Spring Boot
-- Maven
-- PostgreSQL
-- Flyway
-- JUnit 5
-- Telegram Bot API
+* приём и обработку Telegram-событий;
+* маршрутизацию пользовательских запросов;
+* управление состоянием диалогов;
+* работу с сохранёнными пользовательскими данными;
+* подключение специализированных агентов;
+* безопасный fallback, если LLM отключён или недоступен.
 
-<h2 align="center">Local Run</h2>
+---
 
-Запуск тестов:
+<h2 align="center">Агенты</h2>
 
-```bash
-mvn test
-```
+В базовой модели ATLAS использует несколько специализированных агентов.
 
-Рекомендуемый запуск для первого локального старта:
+| Агент             | Зона ответственности                                                      |
+| ----------------- | ------------------------------------------------------------------------- |
+| **ATLAS Core**    | оркестрация, маршрутизация, состояние диалогов и связь между компонентами |
+| **ATLAS Planner** | планирование дня, недели, приоритетов и следующих действий                |
+| **ATLAS Coach**   | тренировки, нагрузка, дисциплина и поддержка физической активности        |
 
-```bash
+Архитектура не ограничивается только этими агентами. В дальнейшем можно добавлять собственных агентов под конкретные сценарии: питание, сон, восстановление, финансы, обучение, работу, проекты или любые другие life-ops направления.
+
+---
+
+<h2 align="center">Быстрый старт</h2>
+
+Рекомендуемый локальный запуск:
+
+```bash id="7luvh3"
 git clone https://github.com/ATLAS-lifeops/ATLAS.git
 cd ATLAS
 make start
 ```
 
-Браузер откроется автоматически:
+Команда `make start`:
 
-```text
+* запускает Docker Compose;
+* ждёт готовности backend;
+* открывает страницу первичной настройки.
+
+Страница настройки:
+
+```text id="ift8yv"
 http://localhost:8080/setup
 ```
 
-`make start` запускает Docker Compose, ждёт готовности backend и открывает страницу настройки на стороне хоста. Если браузер не открылся автоматически, открой:
+Проверка состояния приложения:
 
-```text
-http://localhost:8080/setup
+```text id="2ruijg"
+http://localhost:8080/actuator/health
 ```
 
-Прямой запуск через Docker Compose:
+Запуск тестов:
 
-```bash
-cp .env.example .env
-docker compose up --build -d
+```bash id="gol9vh"
+mvn test
 ```
 
-После прямого запуска открой вручную:
+Полезные команды для локальной разработки:
 
-```text
-http://localhost:8080/setup
-```
-
-Дополнительные команды:
-
-```bash
+```bash id="gcdhvr"
 make up
 make down
 make logs
@@ -111,68 +121,96 @@ make status
 make clean
 ```
 
-Эндпоинт состояния:
+---
 
-```text
-http://localhost:8080/actuator/health
+<h2 align="center">Локальная настройка</h2>
+
+ATLAS поддерживает два основных локальных сценария запуска.
+
+<h3 align="center">1. Setup Mode</h3>
+
+Подходит для первого запуска без заранее подготовленного `.env`.
+
+```bash id="emlu69"
+make start
 ```
 
-Первичная настройка после локального запуска:
+После запуска открой:
 
-```text
+```text id="mhzb2u"
 http://localhost:8080/setup
 ```
 
-Эндпоинт Telegram webhook:
+Дальше:
 
-```text
-POST /telegram/webhook
-```
+1. вставь Telegram Bot Token;
+2. выбери локальный polling-режим;
+3. сохрани настройки;
+4. напиши `/start` боту в Telegram.
 
-<h2 align="center">Configuration</h2>
+<h3 align="center">2. Preconfigured Local Bot Mode</h3>
 
-ATLAS поддерживает два локальных пути запуска.
+Подходит для запуска с заранее заполненным `.env`.
 
-Setup mode:
-
-```bash
-make start
-```
-
-Открой `/setup`, вставь Telegram Bot Token, выбери `Simple local launch`, сохрани настройки и напиши `/start` боту в Telegram.
-
-Preconfigured local bot mode:
-
-```bash
+```bash id="u5td8z"
 cp .env.example .env
-# Заполни ATLAS_TELEGRAM_BOT_TOKEN локально, не добавляя .env в git.
+```
+
+Добавь локально Telegram token:
+
+```bash id="ujavcx"
+ATLAS_TELEGRAM_BOT_TOKEN=<telegram-bot-token>
+```
+
+Затем запусти проект:
+
+```bash id="wxy5p1"
 make start
 ```
 
-Если `ATLAS_TELEGRAM_BOT_TOKEN` задан в локальном `.env`, ATLAS проверит token через Telegram `getMe`, сохранит runtime settings и запустит polling по умолчанию.
+Если `ATLAS_TELEGRAM_BOT_TOKEN` задан, приложение проверит токен через Telegram `getMe`, сохранит runtime-настройки и запустит локальный polling-режим.
 
-Режимы запуска Telegram:
+> Не добавляй реальные секреты в репозиторий.
 
-```text
-POLLING — простой локальный режим, приложение само читает getUpdates и удаляет активный webhook.
-WEBHOOK — production-режим, приложение принимает POST /telegram/webhook и проверяет secret token.
-```
+---
 
-Данные v0.5.0 хранятся в PostgreSQL через Flyway: runtime settings, Telegram users, Telegram messages, life profiles, conversation states, check-ins, habits и evening reflections. Команда `/report` использует сохранённые данные за последние 7 дней, если они есть.
+<h2 align="center">Telegram-режимы</h2>
 
-`/setup/status` возвращает только безопасный публичный статус: нужен ли setup, настроен ли Telegram, username бота, режим запуска, состояние adapter и LLM status. Token, webhook secret и LLM API key не возвращаются.
+ATLAS поддерживает два режима работы с Telegram.
 
-LLM в v0.6.0 опционален и по умолчанию выключен. Настройка OpenAI-compatible provider описана в [русской](docs/ru/llm.md) и [английской](docs/en/llm.md) документации. Если LLM отключён, настроен неполно или провайдер недоступен, ATLAS использует deterministic responses.
+| Режим       | Назначение                                                                                       |
+| ----------- | ------------------------------------------------------------------------------------------------ |
+| **POLLING** | простой локальный режим, в котором приложение само читает обновления через Telegram `getUpdates` |
+| **WEBHOOK** | production-режим, в котором Telegram отправляет события на публичный backend endpoint            |
 
-Не добавляй реальные секреты в репозиторий.
+Локально чаще всего используется `POLLING`.
+
+В production рекомендуется использовать `WEBHOOK`.
+
+---
+
+<h2 align="center">LLM Support</h2>
+
+По умолчанию система может работать без LLM-провайдера и использовать deterministic responses. Это позволяет запускать проект локально, тестировать Telegram UX и проверять основные сценарии без внешнего AI API.
+
+ATLAS предусматривает подключение OpenAI-compatible provider для будущего развития LLM-powered agents.
+
+Документация по настройке:
+
+* [LLM setup RU](docs/ru/llm.md)
+* [LLM setup EN](docs/en/llm.md)
+
+Если LLM отключён, настроен неполно или провайдер недоступен, ATLAS должен продолжать работать через безопасные fallback-ответы.
+
+---
 
 <h2 align="center">Production Telegram Launch</h2>
 
-Production webhook mode описан в разделе конфигурации ниже. Локальные режимы запуска описаны в [русской](docs/ru/local-launch.md) и [английской](docs/en/local-launch.md) документации.
+Production-запуск рассчитан на webhook-режим.
 
-Минимальные production-переменные:
+<h3 align="center">1. Минимальные переменные окружения</h3>
 
-```bash
+```bash id="tyotdp"
 ATLAS_TELEGRAM_ENABLED=true
 ATLAS_TELEGRAM_BOT_TOKEN=<telegram-bot-token>
 ATLAS_TELEGRAM_BOT_USERNAME=<telegram-bot-username>
@@ -183,54 +221,75 @@ ATLAS_PUBLIC_BASE_URL=https://<public-domain>
 ATLAS_TELEGRAM_REGISTER_WEBHOOK_ON_STARTUP=true
 ```
 
-Production health endpoint:
+<h3 align="center">2. Health endpoint</h3>
 
-```text
+```text id="sfln82"
 GET /actuator/health
 ```
 
-Telegram webhook endpoint:
+<h3 align="center">3. Telegram webhook endpoint</h3>
 
-```text
+```text id="t8iewg"
 POST /telegram/webhook
 ```
 
+<h3 align="center">4. Production checklist</h3>
+
+Перед production-запуском проверь:
+
+* backend доступен по публичному HTTPS-домену;
+* `ATLAS_PUBLIC_BASE_URL` указывает на production-домен;
+* webhook secret задан и не хранится в репозитории;
+* Telegram token не попадает в логи и публичные ответы;
+* health endpoint возвращает корректный статус;
+* webhook endpoint принимает Telegram updates;
+* включена регистрация webhook при старте или webhook зарегистрирован вручную.
+
+---
+
 <h2 align="center">Roadmap</h2>
 
-Основная продуктовая дорожная карта:
+Roadmap отражает развитие проекта по ключевым релизам. Подробная история изменений находится в changelog-документации.
 
-```text
-v0.3.0 — реальный Telegram-адаптер
-v0.3.1 — стабилизация Telegram-интеграции
-v0.4.0 — хранение данных пользователей, сообщений и чек-инов
-v0.5.0 — онбординг и диалоговые сценарии
-v0.6.0 — LLM-абстракция
-v0.6.1 — развитие LLM-powered agents
-```
+| Версия     | Фокус                                                                                                         | Статус                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| **v0.2.0** | Docker, Docker Compose, PostgreSQL, базовый health check и конфигурация окружения                             | Завершено                 |
+| **v0.3.0** | первая реальная Telegram-интеграция, webhook receiver и command routing                                       | Завершено                 |
+| **v0.3.1** | стабилизация Telegram-интеграции, безопасная обработка обновлений и длинных ответов                           | Завершено                 |
+| **v0.3.2** | очистка backend-only репозитория, удаление устаревших frontend-артефактов                                     | Завершено                 |
+| **v0.3.3** | production webhook mode, webhook secret validation и production-документация                                  | Завершено                 |
+| **v0.4.0** | PostgreSQL/Flyway persistence, runtime settings, setup page, polling mode и сохранение Telegram-активности    | Завершено                 |
+| **v0.5.0** | onboarding, life profile, conversation states, check-ins, habits, evening reflection и weekly report          | Завершено                 |
+| **v0.5.1** | button-first Telegram UX, выбор языка RU/EN, inline keyboards, main menu, settings/profile panels             | Завершено                 |
+| **v0.5.2** | local launch polish: `make start`, auto-open setup, safe `.env`, preconfigured local bot mode                 | Завершено                 |
+| **v0.5.3** | Telegram UX stabilization: back/menu buttons, flow continuation, settings/profile polish, docs reorganization | Завершено                 |
+| **v0.6.0** | LLM abstraction, OpenAI-compatible provider, deterministic fallback, базовая AI-инфраструктура                | В работе / следующий этап |
+| **v0.6.1** | развитие LLM-powered agents и более умная маршрутизация пользовательских сценариев                            | Запланировано             |
 
-Служебные релизы:
+---
 
-```text
-v0.3.2 — очистка backend-only репозитория и выравнивание документации
-```
+<h2 align="center">Документация</h2>
 
-<h2 align="center">Safety</h2>
+Основная документация разделена на русскую и английскую версии.
 
-ATLAS не является врачом, диетологом или медицинским специалистом. Система не должна ставить диагнозы, назначать лечение, рекомендовать тренироваться через боль, продвигать экстремальные диеты или игнорировать серьёзные симптомы.
+* [Русская документация](docs/ru/README.md)
+* [English documentation](docs/en/README.md)
 
-<h2 align="center">Docs</h2>
+Полезные разделы:
 
-- [Русская документация](docs/ru/README.md)
-- [English documentation](docs/en/README.md)
-- [Локальный запуск](docs/ru/local-launch.md)
-- [Local launch](docs/en/local-launch.md)
-- [Telegram UX RU](docs/ru/telegram-ux.md)
-- [Telegram UX EN](docs/en/telegram-ux.md)
-- [LLM setup RU](docs/ru/llm.md)
-- [LLM setup EN](docs/en/llm.md)
-- [История изменений RU](docs/ru/changelog.md)
-- [Changelog EN](docs/en/changelog.md)
+* [Локальный запуск](docs/ru/local-launch.md)
+* [Local launch](docs/en/local-launch.md)
+* [Telegram UX RU](docs/ru/telegram-ux.md)
+* [Telegram UX EN](docs/en/telegram-ux.md)
+* [LLM setup RU](docs/ru/llm.md)
+* [LLM setup EN](docs/en/llm.md)
+* [История изменений RU](docs/ru/changelog.md)
+* [Changelog EN](docs/en/changelog.md)
 
-<h2 align="center">License</h2>
+---
 
-Лицензия будет определена позже.
+<p align="center">
+  <img src="assets/Readme2.png" alt="ATLAS banner">
+</p>
+
+---
