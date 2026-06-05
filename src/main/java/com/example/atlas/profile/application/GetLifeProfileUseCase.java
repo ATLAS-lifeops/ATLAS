@@ -6,24 +6,27 @@ import com.example.atlas.profile.domain.LifeProfile;
 import com.example.atlas.shared.application.Query;
 import com.example.atlas.shared.application.UseCase;
 import com.example.atlas.user.entity.TelegramUserEntity;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
 @Service
-@ConditionalOnBean(LifeProfileService.class)
 public class GetLifeProfileUseCase implements UseCase<GetLifeProfileUseCase.Input, Optional<LifeProfile>> {
 
-    private final LifeProfileService profileService;
+    private final ObjectProvider<LifeProfileService> profileService;
 
-    public GetLifeProfileUseCase(LifeProfileService profileService) {
+    public GetLifeProfileUseCase(ObjectProvider<LifeProfileService> profileService) {
         this.profileService = profileService;
     }
 
     @Override
     public Optional<LifeProfile> execute(Input input) {
-        return profileService.find(input.user()).map(this::map);
+        LifeProfileService service = profileService.getIfAvailable();
+        if (service == null) {
+            return Optional.empty();
+        }
+        return service.find(input.user()).map(this::map);
     }
 
     private LifeProfile map(LifeProfileEntity entity) {
