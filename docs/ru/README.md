@@ -4,6 +4,11 @@ ATLAS - backend-first Telegram-система для состояния, фок�
 
 ## Документы
 
+- [Архитектура](architecture.md)
+- [ADR 0001: Модульный монолит](adr/0001-modular-monolith.md)
+- [ADR 0002: Ports and adapters](adr/0002-ports-and-adapters.md)
+- [ADR 0003: Telegram как adapter](adr/0003-telegram-as-adapter.md)
+- [ADR 0004: Будущее выделение микросервисов](adr/0004-future-microservices.md)
 - [Локальный запуск](local-launch.md)
 - [Telegram UX](telegram-ux.md)
 - [LLM setup](llm.md)

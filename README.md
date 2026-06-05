@@ -62,6 +62,25 @@ ATLAS Core отвечает за:
 
 ---
 
+<h2 align="center">Архитектура</h2>
+
+ATLAS развивается как модульный монолит с явными bounded contexts, application use cases, ports-and-adapters границами, внутренними событиями и архитектурными тестами.
+
+Проект намеренно не дробится на микросервисы раньше времени, но сохраняет понятный путь к будущему выделению Telegram gateway, life tracking, LLM agents, memory и reporting.
+
+ATLAS is built as a modular monolith with explicit bounded contexts, application use cases, ports-and-adapters boundaries, internal events and CI-enforced architecture rules.
+
+The project intentionally avoids premature microservices while keeping clear future extraction paths for Telegram gateway, life tracking, LLM agents, memory and reporting.
+
+Документация:
+
+* [Архитектура RU](docs/ru/architecture.md)
+* [Architecture EN](docs/en/architecture.md)
+* [ADR RU](docs/ru/adr/0001-modular-monolith.md)
+* [ADR EN](docs/en/adr/0001-modular-monolith.md)
+
+---
+
 <h2 align="center">Агенты</h2>
 
 В базовой модели ATLAS использует несколько специализированных агентов.
@@ -263,6 +282,7 @@ Roadmap отражает развитие проекта по ключевым �
 | **v0.5.1** | button-first Telegram UX, выбор языка RU/EN, inline keyboards, main menu, settings/profile panels             | Завершено                 |
 | **v0.5.2** | local launch polish: `make start`, auto-open setup, safe `.env`, preconfigured local bot mode                 | Завершено                 |
 | **v0.5.3** | Telegram UX stabilization: back/menu buttons, flow continuation, settings/profile polish, docs reorganization | Завершено                 |
+| **v0.5.4** | modular monolith foundation, use-case boundaries, internal events, architecture docs and rules                 | Завершено                 |
 | **v0.6.0** | LLM abstraction, OpenAI-compatible provider, deterministic fallback, базовая AI-инфраструктура                | В работе / следующий этап |
 | **v0.6.1** | развитие LLM-powered agents и более умная маршрутизация пользовательских сценариев                            | Запланировано             |
 
@@ -277,6 +297,8 @@ Roadmap отражает развитие проекта по ключевым �
 
 Полезные разделы:
 
+* [Архитектура RU](docs/ru/architecture.md)
+* [Architecture EN](docs/en/architecture.md)
 * [Локальный запуск](docs/ru/local-launch.md)
 * [Local launch](docs/en/local-launch.md)
 * [Telegram UX RU](docs/ru/telegram-ux.md)

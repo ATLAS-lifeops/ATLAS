@@ -26,6 +26,25 @@
 - LLM is not used for diagnosis or treatment recommendations.
 - For serious symptoms, ATLAS uses safe responses and recommends contacting a qualified professional.
 
+## v0.5.4
+
+### Added
+- Added modular monolith architecture documentation.
+- Added ADRs for key architecture decisions.
+- Added internal application events.
+- Added architecture tests for dependency boundaries.
+
+### Changed
+- Clarified module boundaries: Telegram, identity, setup, profile, tracking, planning, reporting, safety and runtime.
+- Framed Telegram as an adapter rather than domain logic.
+- Moved core scenarios closer to application use cases.
+- Added architecture summary to README.
+
+### Architecture
+- ATLAS remains a modular monolith.
+- Microservices are not introduced in this release.
+- Future extraction paths are documented through bounded contexts and internal events.
+
 ## v0.5.3
 
 ### Added

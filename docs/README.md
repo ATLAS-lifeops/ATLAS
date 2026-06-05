@@ -2,6 +2,11 @@
 
 ## Русский
 - [Главная](ru/README.md)
+- [Архитектура](ru/architecture.md)
+- [ADR 0001: Модульный монолит](ru/adr/0001-modular-monolith.md)
+- [ADR 0002: Ports and adapters](ru/adr/0002-ports-and-adapters.md)
+- [ADR 0003: Telegram как adapter](ru/adr/0003-telegram-as-adapter.md)
+- [ADR 0004: Будущее выделение микросервисов](ru/adr/0004-future-microservices.md)
 - [Локальный запуск](ru/local-launch.md)
 - [Telegram UX](ru/telegram-ux.md)
 - [LLM setup](ru/llm.md)
@@ -9,6 +14,11 @@
 
 ## English
 - [Home](en/README.md)
+- [Architecture](en/architecture.md)
+- [ADR 0001: Modular monolith](en/adr/0001-modular-monolith.md)
+- [ADR 0002: Ports and adapters](en/adr/0002-ports-and-adapters.md)
+- [ADR 0003: Telegram as an adapter](en/adr/0003-telegram-as-adapter.md)
+- [ADR 0004: Future microservices](en/adr/0004-future-microservices.md)
 - [Local launch](en/local-launch.md)
 - [Telegram UX](en/telegram-ux.md)
 - [LLM setup](en/llm.md)
