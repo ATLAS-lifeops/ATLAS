@@ -5,6 +5,9 @@ import com.example.atlas.message.service.TelegramMessagePersistenceService;
 import com.example.atlas.orchestrator.OrchestratorService;
 import com.example.atlas.orchestrator.RequestType;
 import com.example.atlas.safety.SafetyGuard;
+import com.example.atlas.shared.domain.TelegramUserId;
+import com.example.atlas.shared.events.EventPublisher;
+import com.example.atlas.shared.events.UserLanguageSelectedEvent;
 import com.example.atlas.user.UserLanguage;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import com.example.atlas.user.service.TelegramUserService;
@@ -13,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
+import java.time.Instant;
 
 @Component
 public class TelegramUpdateHandler {
@@ -27,6 +32,7 @@ public class TelegramUpdateHandler {
     private final ObjectProvider<TelegramLifeFlowService> lifeFlowService;
     private final TelegramActionRouter actionRouter;
     private final TelegramKeyboardFactory keyboardFactory;
+    private final ObjectProvider<EventPublisher> eventPublisher;
 
     @Autowired
     public TelegramUpdateHandler(
@@ -37,7 +43,8 @@ public class TelegramUpdateHandler {
             ObjectProvider<TelegramMessagePersistenceService> messagePersistenceService,
             ObjectProvider<TelegramLifeFlowService> lifeFlowService,
             TelegramActionRouter actionRouter,
-            TelegramKeyboardFactory keyboardFactory
+            TelegramKeyboardFactory keyboardFactory,
+            ObjectProvider<EventPublisher> eventPublisher
     ) {
         this.orchestratorService = orchestratorService;
         this.messageSender = messageSender;
@@ -47,6 +54,30 @@ public class TelegramUpdateHandler {
         this.lifeFlowService = lifeFlowService;
         this.actionRouter = actionRouter;
         this.keyboardFactory = keyboardFactory;
+        this.eventPublisher = eventPublisher;
+    }
+
+    public TelegramUpdateHandler(
+            OrchestratorService orchestratorService,
+            TelegramMessageSender messageSender,
+            SafetyGuard safetyGuard,
+            ObjectProvider<TelegramUserService> userService,
+            ObjectProvider<TelegramMessagePersistenceService> messagePersistenceService,
+            ObjectProvider<TelegramLifeFlowService> lifeFlowService,
+            TelegramActionRouter actionRouter,
+            TelegramKeyboardFactory keyboardFactory
+    ) {
+        this(
+                orchestratorService,
+                messageSender,
+                safetyGuard,
+                userService,
+                messagePersistenceService,
+                lifeFlowService,
+                actionRouter,
+                keyboardFactory,
+                null
+        );
     }
 
     TelegramUpdateHandler(
@@ -62,6 +93,7 @@ public class TelegramUpdateHandler {
         this.lifeFlowService = null;
         this.actionRouter = new TelegramActionRouter();
         this.keyboardFactory = new TelegramKeyboardFactory();
+        this.eventPublisher = null;
     }
 
     public boolean handleUpdate(TelegramUpdate update) {
@@ -434,6 +466,16 @@ public class TelegramUpdateHandler {
     private RoutedResponse selectLanguage(TelegramUserEntity user, UserLanguage language) {
         TelegramUserService service = userService == null ? null : userService.getIfAvailable();
         TelegramUserEntity updated = service == null ? user : service.updateLanguage(user, language);
+        if (updated != null) {
+            EventPublisher publisher = eventPublisher == null ? null : eventPublisher.getIfAvailable();
+            if (publisher != null) {
+                publisher.publish(new UserLanguageSelectedEvent(
+                        new TelegramUserId(updated.getTelegramUserId()),
+                        language.code(),
+                        Instant.now()
+                ));
+            }
+        }
         return mainMenu(updated == null ? user : updated);
     }
 
