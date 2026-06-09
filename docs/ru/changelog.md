@@ -1,5 +1,85 @@
 # История изменений
 
+## v0.9.0
+
+### Добавлено
+- Добавлены порты интеграций и безопасные metadata для настроек интеграций.
+- Добавлена основа пользовательского Markdown export.
+- Добавлен контракт preview для calendar integration без OAuth и внешней синхронизации.
+
+## v0.8.2
+
+### Добавлено
+- Добавлен детерминированный trend detection для энергии, фокуса, стресса и сна.
+- Добавлен анализ регулярности привычек.
+- Добавлена основа архива отчетов.
+
+## v0.8.1
+
+### Добавлено
+- Добавлена модель фокуса недели.
+- Добавлен сервис недельного планирования для сохранения и получения текущего фокуса.
+- Подготовлена связь недельного плана с недельным отчетом.
+
+## v0.8.0
+
+### Добавлено
+- Добавлены настройки рутины: check-in time, evening time, timezone, quiet hours и enabled state.
+- Добавлена основа scheduler, которая учитывает quiet hours.
+
+## v0.7.3
+
+### Добавлено
+- Добавлены основы hosted rate limits и LLM quotas.
+- Readiness и liveness остаются доступны через Spring Boot health probes.
+
+## v0.7.2
+
+### Добавлено
+- Добавлены основы privacy panel, export, forget memory и delete my data.
+- Добавлены строгие подтверждения для разрушающих операций.
+
+### Безопасность
+- Privacy operations работают только в рамках пользователя и не раскрывают секреты.
+
+## v0.7.1
+
+### Добавлено
+- Добавлена основа hosted runtime для серверной Telegram-конфигурации.
+- Добавлены webhook-first проверки через deployment validation.
+- Добавлен базовый per-user rate limiting.
+
+## v0.7.0
+
+### Добавлено
+- Добавлены явные режимы self-hosted и hosted.
+- Добавлены безопасный deployment status и валидация небезопасных hosted-сочетаний.
+
+## v0.6.4
+
+### Добавлено
+- Добавлен memory-aware LLM context assembly.
+- Добавлены лимиты контекста и user-scoped retrieval для shared и agent-specific memory.
+
+## v0.6.3
+
+### Добавлено
+- Добавлена PostgreSQL-схема для memory records.
+- Добавлены user-scoped repository и persistent memory service.
+- Добавлены опциональные runtime Markdown memory snapshots.
+
+## v0.6.2
+
+### Добавлено
+- Добавлены memory write model, policy, validation result и memory service contract.
+- Agent results расширены proposed memory writes.
+
+## v0.6.1
+
+### Добавлено
+- Добавлены первые scoped LLM agent abstractions и question agent.
+- Добавлены fallback и safety metadata для agent responses.
+
 ## v0.6.0
 
 ### Добавлено

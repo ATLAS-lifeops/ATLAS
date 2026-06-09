@@ -12,8 +12,15 @@ ATLAS is a backend-first Telegram life operating system for state, focus, habits
 - [Local launch](local-launch.md)
 - [Telegram UX](telegram-ux.md)
 - [LLM setup](llm.md)
+- [Memory](memory.md)
+- [Deployment modes](deployment.md)
+- [Privacy controls](privacy.md)
+- [Routines](routines.md)
+- [Weekly planning](weekly-planning.md)
+- [Reports](reports.md)
+- [Integrations](integrations.md)
 - [Changelog](changelog.md)
 
 ## Scope
 
-ATLAS is a Telegram-first backend product. Frontend, landing pages, web dashboards, hosted official bot, reminders, persistent agent memory, embeddings and vector search are outside v0.6.0.
+ATLAS is a Telegram-first backend product. Embeddings, vector search, OAuth sync and full external provider synchronization remain outside v0.9.0.

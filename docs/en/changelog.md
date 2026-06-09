@@ -1,5 +1,85 @@
 # Changelog
 
+## v0.9.0
+
+### Added
+- Added integration port interfaces and safe integration settings metadata.
+- Added user-scoped Markdown export foundation.
+- Added calendar integration preview contract without OAuth or external sync.
+
+## v0.8.2
+
+### Added
+- Added deterministic trend detection for energy, focus, stress and sleep.
+- Added habit consistency analysis.
+- Added report archive persistence foundation.
+
+## v0.8.1
+
+### Added
+- Added persisted weekly focus model.
+- Added weekly planning service for saving and retrieving current focus.
+- Prepared weekly report connection points for weekly plan data.
+
+## v0.8.0
+
+### Added
+- Added routine preferences for check-in time, evening time, timezone, quiet hours and enabled state.
+- Added reminder scheduler foundation that respects quiet hours.
+
+## v0.7.3
+
+### Added
+- Added hosted rate-limit and LLM quota foundations.
+- Kept health endpoints available through Spring Boot readiness and liveness probes.
+
+## v0.7.2
+
+### Added
+- Added privacy panel, export, forget-memory and delete-my-data service foundations.
+- Added strong confirmation checks for destructive operations.
+
+### Security
+- Privacy operations are user-scoped and do not expose raw secrets.
+
+## v0.7.1
+
+### Added
+- Added hosted runtime foundations for server-owned Telegram configuration.
+- Added webhook-first safety checks through deployment validation.
+- Added basic per-user rate limiting.
+
+## v0.7.0
+
+### Added
+- Added explicit self-hosted and hosted deployment modes.
+- Added safe deployment status and validation for unsafe hosted combinations.
+
+## v0.6.4
+
+### Added
+- Added memory-aware LLM context assembly.
+- Added context limits and user-scoped shared/agent-specific memory retrieval.
+
+## v0.6.3
+
+### Added
+- Added PostgreSQL persistence schema for memory records.
+- Added user-scoped memory repository and persistent memory service.
+- Added optional runtime Markdown memory snapshots.
+
+## v0.6.2
+
+### Added
+- Added memory write model, policy, validation result and memory service contract.
+- Extended agent results with proposed memory writes.
+
+## v0.6.1
+
+### Added
+- Added first scoped LLM agent abstractions and question agent.
+- Added fallback and safety metadata on agent responses.
+
 ## v0.6.0
 
 ### Added
