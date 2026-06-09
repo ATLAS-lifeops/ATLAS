@@ -10,10 +10,10 @@ target/
 *.iml
 
 logs/
-data/
-memory/
-runtime/
-storage/
+/data/
+/memory/
+/runtime/
+/storage/
 *.log
 *.pid
 *.pid.lock
