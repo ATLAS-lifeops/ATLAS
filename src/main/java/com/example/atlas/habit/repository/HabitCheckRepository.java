@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface HabitCheckRepository extends JpaRepository<HabitCheckEntity, UUID> {
 
     List<HabitCheckEntity> findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(TelegramUserEntity telegramUser, Instant createdAt);
+
+    long countByTelegramUser(TelegramUserEntity telegramUser);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

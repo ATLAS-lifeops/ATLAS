@@ -23,6 +23,8 @@ management:
         enabled: true
 
 atlas:
+  deployment:
+    mode: ${ATLAS_DEPLOYMENT_MODE:self_hosted}
   setup:
     enabled: ${ATLAS_SETUP_ENABLED:true}
   telegram:
@@ -51,3 +53,8 @@ atlas:
     day-plan-enabled: ${ATLAS_LLM_DAY_PLAN_ENABLED:true}
     report-enabled: ${ATLAS_LLM_REPORT_ENABLED:true}
     question-enabled: ${ATLAS_LLM_QUESTION_ENABLED:true}
+  memory:
+    snapshots-enabled: ${ATLAS_MEMORY_SNAPSHOTS_ENABLED:false}
+    snapshot-path: ${ATLAS_MEMORY_SNAPSHOT_PATH:/app/data/memory}
+  routines:
+    scheduler-enabled: ${ATLAS_ROUTINE_SCHEDULER_ENABLED:true}

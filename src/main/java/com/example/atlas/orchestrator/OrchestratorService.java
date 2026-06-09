@@ -74,6 +74,13 @@ public class OrchestratorService {
             case "/evening", "/review" -> RequestType.EVENING_REFLECTION;
             case "/food" -> RequestType.FOOD;
             case "/report" -> RequestType.REPORT;
+            case "/privacy" -> RequestType.PRIVACY;
+            case "/memory" -> RequestType.MEMORY;
+            case "/export" -> RequestType.EXPORT;
+            case "/forget" -> RequestType.FORGET;
+            case "/delete_my_data" -> RequestType.DELETE_MY_DATA;
+            case "/routines" -> RequestType.ROUTINES;
+            case "/integrations" -> RequestType.INTEGRATIONS;
             case "/emergency" -> RequestType.EMERGENCY;
             case "/help" -> RequestType.HELP;
             case "/cancel" -> RequestType.CANCEL;
