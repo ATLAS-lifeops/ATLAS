@@ -1,5 +1,6 @@
 package com.example.atlas.llm;
 
+import com.example.atlas.agent.AgentType;
 import com.example.atlas.checkin.entity.CheckInEntity;
 import com.example.atlas.checkin.repository.CheckInRepository;
 import com.example.atlas.habit.entity.HabitCheckEntity;
@@ -8,12 +9,16 @@ import com.example.atlas.habit.service.HabitService;
 import com.example.atlas.life.entity.LifeProfileEntity;
 import com.example.atlas.life.repository.LifeProfileRepository;
 import com.example.atlas.life.service.LifeProfileService;
+import com.example.atlas.memory.AgentMemoryRecord;
+import com.example.atlas.memory.AgentMemoryService;
 import com.example.atlas.reflection.entity.EveningReflectionEntity;
 import com.example.atlas.reflection.repository.EveningReflectionRepository;
 import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.safety.SafetyGuard;
 import com.example.atlas.user.UserLanguage;
 import com.example.atlas.user.entity.TelegramUserEntity;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +43,7 @@ public class LlmContextAssembler {
     private final HabitService habitService;
     private final EveningReflectionService reflectionService;
     private final SafetyGuard safetyGuard;
+    private final ObjectProvider<AgentMemoryService> memoryService;
     private final Clock clock;
 
     public LlmContextAssembler(
@@ -47,7 +53,19 @@ public class LlmContextAssembler {
             EveningReflectionService reflectionService,
             SafetyGuard safetyGuard
     ) {
-        this(lifeProfileService, checkInRepository, habitService, reflectionService, safetyGuard, Clock.systemUTC());
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, safetyGuard, null, Clock.systemUTC());
+    }
+
+    @Autowired
+    public LlmContextAssembler(
+            LifeProfileService lifeProfileService,
+            CheckInRepository checkInRepository,
+            HabitService habitService,
+            EveningReflectionService reflectionService,
+            SafetyGuard safetyGuard,
+            ObjectProvider<AgentMemoryService> memoryService
+    ) {
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, safetyGuard, memoryService, Clock.systemUTC());
     }
 
     LlmContextAssembler(
@@ -58,11 +76,24 @@ public class LlmContextAssembler {
             SafetyGuard safetyGuard,
             Clock clock
     ) {
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, safetyGuard, null, clock);
+    }
+
+    LlmContextAssembler(
+            LifeProfileService lifeProfileService,
+            CheckInRepository checkInRepository,
+            HabitService habitService,
+            EveningReflectionService reflectionService,
+            SafetyGuard safetyGuard,
+            ObjectProvider<AgentMemoryService> memoryService,
+            Clock clock
+    ) {
         this.lifeProfileService = lifeProfileService;
         this.checkInRepository = checkInRepository;
         this.habitService = habitService;
         this.reflectionService = reflectionService;
         this.safetyGuard = safetyGuard;
+        this.memoryService = memoryService;
         this.clock = clock;
     }
 
@@ -96,6 +127,9 @@ public class LlmContextAssembler {
                 Reflections
                 %s
 
+                Memory
+                %s
+
                 Current request
                 %s
 
@@ -107,11 +141,38 @@ public class LlmContextAssembler {
                 recentPatternText(checkIns),
                 habitText(habits),
                 reflectionText(reflections),
+                memoryText(user, purpose),
                 blank(currentRequest) ? "not provided" : currentRequest.strip(),
                 safetyRisk ? "Risk words or saved risk flags are present." : "No explicit safety risk detected."
         ).strip();
 
         return new PromptContext(purpose, user.getId(), language, context, currentRequest, safetyRisk);
+    }
+
+    private String memoryText(TelegramUserEntity user, PromptPurpose purpose) {
+        AgentMemoryService service = memoryService == null ? null : memoryService.getIfAvailable();
+        if (service == null) {
+            return "not available";
+        }
+        AgentType agentType = switch (purpose) {
+            case DAY_PLAN -> AgentType.PLANNER;
+            case WEEKLY_REPORT -> AgentType.REPORT;
+            case QUESTION_ROUTING -> AgentType.QUESTION;
+        };
+        List<AgentMemoryRecord> shared = service.findSharedContext(user.getId(), 4);
+        List<AgentMemoryRecord> agent = service.findForAgent(user.getId(), agentType, 4);
+        String text = "shared=%s; agent=%s".formatted(memoryRecords(shared), memoryRecords(agent));
+        return text.length() > 1200 ? text.substring(0, 1200) : text;
+    }
+
+    private String memoryRecords(List<AgentMemoryRecord> records) {
+        if (records.isEmpty()) {
+            return "none";
+        }
+        return records.stream()
+                .map(record -> "%s:%s".formatted(record.type(), value(record.content())))
+                .reduce((left, right) -> left + " | " + right)
+                .orElse("none");
     }
 
     private String profileText(LifeProfileEntity profile, UserLanguage language) {
