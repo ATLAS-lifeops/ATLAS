@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+- Connected user-aware agent routing so Planner, Report and Question agents can use persisted user context.
+- Persisted agent-proposed memory writes through `AgentMemoryService`.
+- Wired privacy commands to real export, forget-memory and delete-my-data service behavior.
+- Connected weekly focus to weekly reports and archived generated reports.
+- Persisted integration settings through `IntegrationSettingsPort`.
+- Wired hosted rate limits and LLM quotas into Telegram and LLM flows.
+- Hardened hosted mode to require a webhook secret and documented backup/restore.
+
 ## v0.9.0
 
 ### Added

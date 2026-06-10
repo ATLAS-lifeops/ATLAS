@@ -2,9 +2,9 @@
 
 The integration foundation is port-first:
 
-- integration settings store safe metadata only;
+- integration settings persist safe metadata only through `IntegrationSettingsPort`;
 - Markdown export is user-scoped;
 - calendar integration exposes a preview contract;
 - no OAuth flow or full external sync is included.
 
-Future integrations can implement these ports without changing ATLAS into a multi-service system.
+The Telegram settings panel links to integrations status. Future integrations can implement these ports without changing ATLAS into a multi-service system.
