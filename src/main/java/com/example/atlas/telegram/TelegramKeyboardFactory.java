@@ -233,6 +233,8 @@ public class TelegramKeyboardFactory {
             return keyboard(
                     row(button("🌐 Change language", TelegramActionRouter.SETTINGS_LANGUAGE)),
                     row(button("🧭 Profile", TelegramActionRouter.PROFILE)),
+                    row(button("Privacy", TelegramActionRouter.PRIVACY), button("Routines", TelegramActionRouter.ROUTINES)),
+                    row(button("Weekly plan", TelegramActionRouter.WEEKLY_PLANNING), button("Integrations", TelegramActionRouter.INTEGRATIONS)),
                     row(button("🔄 Restart onboarding", TelegramActionRouter.SETTINGS_RESTART_CONFIRM)),
                     row(menuButton(language))
             );
@@ -240,6 +242,8 @@ public class TelegramKeyboardFactory {
         return keyboard(
                 row(button("🌐 Изменить язык", TelegramActionRouter.SETTINGS_LANGUAGE)),
                 row(button("🧭 Профиль", TelegramActionRouter.PROFILE)),
+                row(button("Privacy", TelegramActionRouter.PRIVACY), button("Routines", TelegramActionRouter.ROUTINES)),
+                row(button("Weekly plan", TelegramActionRouter.WEEKLY_PLANNING), button("Integrations", TelegramActionRouter.INTEGRATIONS)),
                 row(button("🔄 Перезапустить onboarding", TelegramActionRouter.SETTINGS_RESTART_CONFIRM)),
                 row(menuButton(language))
         );

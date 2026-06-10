@@ -6,8 +6,13 @@ import com.example.atlas.habit.entity.HabitCheckEntity;
 import com.example.atlas.habit.service.HabitService;
 import com.example.atlas.life.entity.LifeProfileEntity;
 import com.example.atlas.llm.LlmReportSummaryService;
+import com.example.atlas.planning.WeeklyPlanningService;
 import com.example.atlas.reflection.entity.EveningReflectionEntity;
 import com.example.atlas.reflection.service.EveningReflectionService;
+import com.example.atlas.reporting.TrendDetectionService;
+import com.example.atlas.reporting.TrendSummary;
+import com.example.atlas.reporting.entity.ReportArchiveEntity;
+import com.example.atlas.reporting.repository.ReportArchiveRepository;
 import com.example.atlas.user.entity.TelegramUserEntity;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,9 +22,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.util.UUID;
 
 @Service
 @ConditionalOnBean({LifeProfileService.class, CheckInRepository.class, HabitService.class, EveningReflectionService.class})
@@ -31,6 +39,9 @@ public class WeeklyLifeReportService {
     private final EveningReflectionService reflectionService;
     private final Clock clock;
     private final ObjectProvider<LlmReportSummaryService> llmReportSummaryService;
+    private final ObjectProvider<WeeklyPlanningService> weeklyPlanningService;
+    private final ObjectProvider<TrendDetectionService> trendDetectionService;
+    private final ObjectProvider<ReportArchiveRepository> reportArchiveRepository;
 
     public WeeklyLifeReportService(
             LifeProfileService lifeProfileService,
@@ -38,7 +49,7 @@ public class WeeklyLifeReportService {
             HabitService habitService,
             EveningReflectionService reflectionService
     ) {
-        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC(), null);
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC(), null, null, null, null);
     }
 
     @Autowired
@@ -47,9 +58,12 @@ public class WeeklyLifeReportService {
             CheckInRepository checkInRepository,
             HabitService habitService,
             EveningReflectionService reflectionService,
-            ObjectProvider<LlmReportSummaryService> llmReportSummaryService
+            ObjectProvider<LlmReportSummaryService> llmReportSummaryService,
+            ObjectProvider<WeeklyPlanningService> weeklyPlanningService,
+            ObjectProvider<TrendDetectionService> trendDetectionService,
+            ObjectProvider<ReportArchiveRepository> reportArchiveRepository
     ) {
-        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC(), llmReportSummaryService);
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, Clock.systemUTC(), llmReportSummaryService, weeklyPlanningService, trendDetectionService, reportArchiveRepository);
     }
 
     WeeklyLifeReportService(
@@ -60,22 +74,38 @@ public class WeeklyLifeReportService {
             Clock clock,
             ObjectProvider<LlmReportSummaryService> llmReportSummaryService
     ) {
+        this(lifeProfileService, checkInRepository, habitService, reflectionService, clock, llmReportSummaryService, null, null, null);
+    }
+
+    WeeklyLifeReportService(
+            LifeProfileService lifeProfileService,
+            CheckInRepository checkInRepository,
+            HabitService habitService,
+            EveningReflectionService reflectionService,
+            Clock clock,
+            ObjectProvider<LlmReportSummaryService> llmReportSummaryService,
+            ObjectProvider<WeeklyPlanningService> weeklyPlanningService,
+            ObjectProvider<TrendDetectionService> trendDetectionService,
+            ObjectProvider<ReportArchiveRepository> reportArchiveRepository
+    ) {
         this.lifeProfileService = lifeProfileService;
         this.checkInRepository = checkInRepository;
         this.habitService = habitService;
         this.reflectionService = reflectionService;
         this.clock = clock;
         this.llmReportSummaryService = llmReportSummaryService;
+        this.weeklyPlanningService = weeklyPlanningService;
+        this.trendDetectionService = trendDetectionService;
+        this.reportArchiveRepository = reportArchiveRepository;
     }
 
     @Transactional
     public String weeklyReport(TelegramUserEntity user) {
         String deterministic = deterministicWeeklyReport(user);
         LlmReportSummaryService service = llmReportSummaryService == null ? null : llmReportSummaryService.getIfAvailable();
-        if (service == null) {
-            return deterministic;
-        }
-        return service.summary(user, deterministic).orElse(deterministic);
+        String report = service == null ? deterministic : service.summary(user, deterministic).orElse(deterministic);
+        archive(user, report);
+        return report;
     }
 
     private String deterministicWeeklyReport(TelegramUserEntity user) {
@@ -84,15 +114,20 @@ public class WeeklyLifeReportService {
         List<CheckInEntity> checkIns = checkInRepository.findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(user, since);
         List<HabitCheckEntity> habits = habitService.recent(user, since);
         List<EveningReflectionEntity> reflections = reflectionService.recent(user, since);
+        TrendSummary trends = trends(checkIns, habits);
 
         return """
                 Недельный отчёт
 
+                Weekly focus: %s
                 Check-ins: %d из 7
                 Средняя энергия: %s
                 Средний фокус: %s
                 Средний стресс: %s
                 Сон: %s
+
+                Trends:
+                energy=%s, focus=%s, stress=%s, sleep=%s, habits=%s
 
                 Привычки:
                 %s
@@ -106,11 +141,17 @@ public class WeeklyLifeReportService {
                 Фокус следующей недели:
                 %s
                 """.formatted(
+                weeklyFocus(user),
                 checkIns.size(),
                 averageText(checkIns.stream().map(CheckInEntity::getEnergy).toList()),
                 averageText(checkIns.stream().map(CheckInEntity::getFocus).toList()),
                 averageText(checkIns.stream().map(CheckInEntity::getStress).toList()),
                 averageText(checkIns.stream().map(CheckInEntity::getSleepQuality).toList()),
+                trends.energyTrend(),
+                trends.focusTrend(),
+                trends.stressTrend(),
+                trends.sleepTrend(),
+                trends.habitConsistency(),
                 habitSummary(habits),
                 reflectionSummary(reflections),
                 pattern(checkIns),
@@ -193,5 +234,31 @@ public class WeeklyLifeReportService {
 
     private String orMissing(String value) {
         return value == null || value.isBlank() ? "нет данных" : value;
+    }
+
+    private TrendSummary trends(List<CheckInEntity> checkIns, List<HabitCheckEntity> habits) {
+        TrendDetectionService service = trendDetectionService == null ? null : trendDetectionService.getIfAvailable();
+        if (service == null) {
+            return new TrendSummary("not_available", "not_available", "not_available", "not_available", "not_available");
+        }
+        return service.summarize(checkIns, habits);
+    }
+
+    private String weeklyFocus(TelegramUserEntity user) {
+        WeeklyPlanningService service = weeklyPlanningService == null ? null : weeklyPlanningService.getIfAvailable();
+        if (service == null) {
+            return "not set";
+        }
+        String focus = service.currentFocus(user, LocalDate.now(clock));
+        return focus == null || focus.isBlank() ? "not set" : focus;
+    }
+
+    private void archive(TelegramUserEntity user, String report) {
+        ReportArchiveRepository repository = reportArchiveRepository == null ? null : reportArchiveRepository.getIfAvailable();
+        if (repository == null || user == null || report == null || report.isBlank()) {
+            return;
+        }
+        LocalDate weekStart = LocalDate.now(clock).with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+        repository.save(new ReportArchiveEntity(UUID.randomUUID(), user, weekStart, report, Instant.now(clock)));
     }
 }

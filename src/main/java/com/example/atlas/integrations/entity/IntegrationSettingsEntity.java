@@ -51,4 +51,34 @@ public class IntegrationSettingsEntity {
         this.safeMetadataJson = safeMetadataJson;
         this.updatedAt = updatedAt;
     }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public TelegramUserEntity getTelegramUser() {
+        return telegramUser;
+    }
+
+    public IntegrationType getIntegrationType() {
+        return integrationType;
+    }
+
+    public IntegrationStatus getStatus() {
+        return status;
+    }
+
+    public String getSafeMetadataJson() {
+        return safeMetadataJson;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void update(IntegrationStatus status, String safeMetadataJson, Instant updatedAt) {
+        this.status = status;
+        this.safeMetadataJson = safeMetadataJson;
+        this.updatedAt = updatedAt;
+    }
 }

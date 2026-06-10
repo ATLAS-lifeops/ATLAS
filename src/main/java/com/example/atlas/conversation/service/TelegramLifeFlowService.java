@@ -12,6 +12,7 @@ import com.example.atlas.life.service.LifeProfileService;
 import com.example.atlas.life.service.WeeklyLifeReportService;
 import com.example.atlas.llm.LlmQuestionAnswerService;
 import com.example.atlas.orchestrator.RequestType;
+import com.example.atlas.planning.WeeklyPlanningService;
 import com.example.atlas.reflection.service.EveningReflectionService;
 import com.example.atlas.safety.SafetyGuard;
 import com.example.atlas.telegram.InlineKeyboardMarkup;
@@ -54,6 +55,7 @@ public class TelegramLifeFlowService {
     private final SafetyGuard safetyGuard;
     private final TelegramKeyboardFactory keyboardFactory;
     private final ObjectProvider<LlmQuestionAnswerService> llmQuestionAnswerService;
+    private final ObjectProvider<WeeklyPlanningService> weeklyPlanningService;
 
     @Autowired
     public TelegramLifeFlowService(
@@ -66,7 +68,8 @@ public class TelegramLifeFlowService {
             WeeklyLifeReportService weeklyReportService,
             SafetyGuard safetyGuard,
             TelegramKeyboardFactory keyboardFactory,
-            ObjectProvider<LlmQuestionAnswerService> llmQuestionAnswerService
+            ObjectProvider<LlmQuestionAnswerService> llmQuestionAnswerService,
+            ObjectProvider<WeeklyPlanningService> weeklyPlanningService
     ) {
         this.conversationStateService = conversationStateService;
         this.lifeProfileService = lifeProfileService;
@@ -78,6 +81,7 @@ public class TelegramLifeFlowService {
         this.safetyGuard = safetyGuard;
         this.keyboardFactory = keyboardFactory;
         this.llmQuestionAnswerService = llmQuestionAnswerService;
+        this.weeklyPlanningService = weeklyPlanningService;
     }
 
     public TelegramLifeFlowService(
@@ -101,6 +105,7 @@ public class TelegramLifeFlowService {
                 weeklyReportService,
                 safetyGuard,
                 keyboardFactory,
+                null,
                 null
         );
     }
@@ -125,6 +130,7 @@ public class TelegramLifeFlowService {
                 weeklyReportService,
                 safetyGuard,
                 new TelegramKeyboardFactory(),
+                null,
                 null
         );
     }
@@ -153,6 +159,9 @@ public class TelegramLifeFlowService {
                 return Optional.of(new FlowResult(dayPlanEmptyState(language), requestType, keyboardFactory.dayPlanEmptyStateActions(language)));
             }
             return Optional.of(new FlowResult(dayPlanService.dayPlan(user), requestType, keyboardFactory.dayPlanActions(language(user))));
+        }
+        if (requestType == RequestType.WEEK_PLAN) {
+            return Optional.of(weeklyPlan(user, text));
         }
         if (requestType == RequestType.HABITS) {
             UserLanguage language = language(user);
@@ -194,6 +203,46 @@ public class TelegramLifeFlowService {
         UserLanguage language = language(user);
         return service.answer(user, text)
                 .map(answer -> new FlowResult(answer, RequestType.GENERAL, keyboardFactory.questionActions(language)));
+    }
+
+    private FlowResult weeklyPlan(TelegramUserEntity user, String text) {
+        WeeklyPlanningService service = weeklyPlanningService == null ? null : weeklyPlanningService.getIfAvailable();
+        UserLanguage language = language(user);
+        if (service == null) {
+            return new FlowResult(
+                    language == UserLanguage.EN
+                            ? "Weekly planning is not available without persistence."
+                            : "Недельное планирование недоступно без persistence.",
+                    RequestType.WEEK_PLAN,
+                    keyboardFactory.backToMenu(language)
+            );
+        }
+        String focus = commandArgument(text);
+        if (focus.isBlank()) {
+            String current = service.currentFocus(user, java.time.LocalDate.now());
+            return new FlowResult(
+                    current == null || current.isBlank()
+                            ? "Weekly focus is not set. Send: /week <main focus>"
+                            : "Weekly focus: " + current + "\n\nTo update it, send: /week <main focus>",
+                    RequestType.WEEK_PLAN,
+                    keyboardFactory.reportActions(language)
+            );
+        }
+        service.saveFocus(user, java.time.LocalDate.now(), focus);
+        return new FlowResult(
+                "Weekly focus saved: " + focus + "\n\nWeekly reports will use this focus.",
+                RequestType.WEEK_PLAN,
+                keyboardFactory.reportActions(language)
+        );
+    }
+
+    private String commandArgument(String text) {
+        if (text == null) {
+            return "";
+        }
+        String stripped = text.strip();
+        int space = stripped.indexOf(' ');
+        return space < 0 ? "" : stripped.substring(space + 1).strip();
     }
 
     private FlowResult startOnboardingOrWelcomeBack(TelegramUserEntity user) {

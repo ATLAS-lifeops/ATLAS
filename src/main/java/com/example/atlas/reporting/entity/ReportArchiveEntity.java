@@ -42,4 +42,16 @@ public class ReportArchiveEntity {
         this.content = content;
         this.createdAt = createdAt;
     }
+
+    public LocalDate getWeekStart() {
+        return weekStart;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 }

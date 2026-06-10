@@ -46,4 +46,13 @@ public class WeeklyFocusEntity {
     public String getFocus() {
         return focus;
     }
+
+    public LocalDate getWeekStart() {
+        return weekStart;
+    }
+
+    public void updateFocus(String focus, Instant now) {
+        this.focus = focus;
+        this.createdAt = now;
+    }
 }

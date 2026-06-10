@@ -25,7 +25,13 @@ public class WeeklyPlanningService {
     @Transactional
     public WeeklyFocusEntity saveFocus(TelegramUserEntity user, LocalDate date, String focus) {
         LocalDate weekStart = date.with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-        return repository.save(new WeeklyFocusEntity(UUID.randomUUID(), user, weekStart, focus.strip(), Instant.now()));
+        Instant now = Instant.now();
+        return repository.findByTelegramUserAndWeekStart(user, weekStart)
+                .map(existing -> {
+                    existing.updateFocus(focus.strip(), now);
+                    return repository.save(existing);
+                })
+                .orElseGet(() -> repository.save(new WeeklyFocusEntity(UUID.randomUUID(), user, weekStart, focus.strip(), now)));
     }
 
     @Transactional(readOnly = true)

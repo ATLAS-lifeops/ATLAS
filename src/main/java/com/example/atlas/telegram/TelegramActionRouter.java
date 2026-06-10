@@ -34,6 +34,10 @@ public class TelegramActionRouter {
     public static final String SETTINGS_LANGUAGE = "atlas:settings:language";
     public static final String LANGUAGE_RU = "atlas:language:ru";
     public static final String LANGUAGE_EN = "atlas:language:en";
+    public static final String PRIVACY = "atlas:privacy";
+    public static final String ROUTINES = "atlas:routines";
+    public static final String WEEKLY_PLANNING = "atlas:weekly_planning";
+    public static final String INTEGRATIONS = "atlas:integrations";
 
     private static final Set<String> LIFE_AREAS = Set.of(
             "DAILY_STRUCTURE",
@@ -70,7 +74,11 @@ public class TelegramActionRouter {
             Map.entry(ONBOARDING_RESTART, TelegramAction.RESTART_ONBOARDING),
             Map.entry(SETTINGS_LANGUAGE, TelegramAction.CHANGE_LANGUAGE),
             Map.entry(LANGUAGE_RU, TelegramAction.SELECT_LANGUAGE_RU),
-            Map.entry(LANGUAGE_EN, TelegramAction.SELECT_LANGUAGE_EN)
+            Map.entry(LANGUAGE_EN, TelegramAction.SELECT_LANGUAGE_EN),
+            Map.entry(PRIVACY, TelegramAction.OPEN_PRIVACY),
+            Map.entry(ROUTINES, TelegramAction.OPEN_ROUTINES),
+            Map.entry(WEEKLY_PLANNING, TelegramAction.OPEN_WEEKLY_PLANNING),
+            Map.entry(INTEGRATIONS, TelegramAction.OPEN_INTEGRATIONS)
     );
 
     public Optional<TelegramAction> actionForCommand(String text, boolean onboardingCompleted) {
@@ -133,6 +141,10 @@ public class TelegramActionRouter {
             case OPEN_MAIN_MENU, GO_BACK, CONTINUE_FLOW, RESTART_FLOW, CONFIRM_ACTION, DECLINE_ACTION,
                     START_QUESTION, OPEN_SETTINGS, OPEN_PROFILE, CONFIRM_RESTART_ONBOARDING, CHANGE_LANGUAGE,
                     SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> RequestType.GENERAL;
+            case OPEN_PRIVACY -> RequestType.PRIVACY;
+            case OPEN_ROUTINES -> RequestType.ROUTINES;
+            case OPEN_WEEKLY_PLANNING -> RequestType.WEEK_PLAN;
+            case OPEN_INTEGRATIONS -> RequestType.INTEGRATIONS;
         };
     }
 
@@ -150,6 +162,10 @@ public class TelegramActionRouter {
             case OPEN_MAIN_MENU, GO_BACK, CONTINUE_FLOW, RESTART_FLOW, CONFIRM_ACTION, DECLINE_ACTION,
                     START_QUESTION, OPEN_SETTINGS, OPEN_PROFILE, CONFIRM_RESTART_ONBOARDING, CHANGE_LANGUAGE,
                     SELECT_LANGUAGE_RU, SELECT_LANGUAGE_EN -> "";
+            case OPEN_PRIVACY -> "/privacy";
+            case OPEN_ROUTINES -> "/routines";
+            case OPEN_WEEKLY_PLANNING -> "/week";
+            case OPEN_INTEGRATIONS -> "/integrations";
         };
     }
 
