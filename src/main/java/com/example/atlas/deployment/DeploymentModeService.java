@@ -38,6 +38,7 @@ public class DeploymentModeService {
                 && properties.telegram().enabled()
                 && properties.telegram().hasBotToken()
                 && properties.telegram().mode() == TelegramLaunchMode.WEBHOOK
-                && properties.telegram().effectiveWebhookUrl() != null;
+                && properties.telegram().effectiveWebhookUrl() != null
+                && properties.telegram().hasWebhookSecret();
     }
 }

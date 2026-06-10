@@ -1,6 +1,8 @@
 spring:
   application:
     name: atlas
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/atlas}
     username: ${SPRING_DATASOURCE_USERNAME:atlas}
