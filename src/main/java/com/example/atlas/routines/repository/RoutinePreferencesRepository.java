@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface RoutinePreferencesRepository extends JpaRepository<RoutinePreferencesEntity, UUID> {
 
     Optional<RoutinePreferencesEntity> findByTelegramUser(TelegramUserEntity telegramUser);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

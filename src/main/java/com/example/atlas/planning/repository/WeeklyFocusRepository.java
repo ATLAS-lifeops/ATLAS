@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface WeeklyFocusRepository extends JpaRepository<WeeklyFocusEntity, UUID> {
 
     Optional<WeeklyFocusEntity> findByTelegramUserAndWeekStart(TelegramUserEntity telegramUser, LocalDate weekStart);
+
+    java.util.List<WeeklyFocusEntity> findByTelegramUserOrderByWeekStartDesc(TelegramUserEntity telegramUser);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

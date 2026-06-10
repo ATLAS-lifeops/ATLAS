@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface ReportArchiveRepository extends JpaRepository<ReportArchiveEntity, UUID> {
 
     List<ReportArchiveEntity> findByTelegramUserOrderByCreatedAtDesc(TelegramUserEntity telegramUser);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }
