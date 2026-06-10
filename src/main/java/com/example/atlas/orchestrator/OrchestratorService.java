@@ -3,6 +3,11 @@ package com.example.atlas.orchestrator;
 import com.example.atlas.agent.Agent;
 import com.example.atlas.agent.AgentContext;
 import com.example.atlas.agent.AgentResult;
+import com.example.atlas.memory.AgentMemoryService;
+import com.example.atlas.memory.MemoryWrite;
+import com.example.atlas.user.entity.TelegramUserEntity;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -13,11 +18,21 @@ import java.util.Locale;
 public class OrchestratorService {
 
     private final List<Agent> agents;
+    private final ObjectProvider<AgentMemoryService> memoryService;
+
+    @Autowired
+    public OrchestratorService(List<Agent> agents, ObjectProvider<AgentMemoryService> memoryService) {
+        this.agents = agents.stream()
+                .sorted(Comparator.comparing(Agent::name))
+                .toList();
+        this.memoryService = memoryService;
+    }
 
     public OrchestratorService(List<Agent> agents) {
         this.agents = agents.stream()
                 .sorted(Comparator.comparing(Agent::name))
                 .toList();
+        this.memoryService = null;
     }
 
     public AgentResult route(String message) {
@@ -26,7 +41,13 @@ public class OrchestratorService {
     }
 
     public AgentResult route(RequestType requestType, String message) {
-        AgentContext context = AgentContext.anonymous(message, requestType);
+        return route(null, requestType, message);
+    }
+
+    public AgentResult route(TelegramUserEntity user, RequestType requestType, String message) {
+        AgentContext context = user == null
+                ? AgentContext.anonymous(message, requestType)
+                : AgentContext.forUser(user, message, requestType);
 
         List<AgentResult> results = agents.stream()
                 .filter(agent -> agent.supports(requestType))
@@ -41,7 +62,9 @@ public class OrchestratorService {
         }
 
         if (results.size() == 1) {
-            return results.getFirst();
+            AgentResult result = results.getFirst();
+            persistMemory(result.memoryWrites());
+            return result;
         }
 
         String content = results.stream()
@@ -53,7 +76,22 @@ public class OrchestratorService {
                 .distinct()
                 .toList();
 
-        return new AgentResult(content, handledBy);
+        List<MemoryWrite> memoryWrites = results.stream()
+                .flatMap(result -> result.memoryWrites().stream())
+                .toList();
+        persistMemory(memoryWrites);
+        return new AgentResult(content, handledBy, java.util.Map.of(), false, false, memoryWrites);
+    }
+
+    private void persistMemory(List<MemoryWrite> memoryWrites) {
+        if (memoryWrites == null || memoryWrites.isEmpty() || memoryService == null) {
+            return;
+        }
+        AgentMemoryService service = memoryService.getIfAvailable();
+        if (service == null) {
+            return;
+        }
+        memoryWrites.forEach(service::write);
     }
 
     public RequestType resolveRequestType(String message) {
@@ -74,6 +112,13 @@ public class OrchestratorService {
             case "/evening", "/review" -> RequestType.EVENING_REFLECTION;
             case "/food" -> RequestType.FOOD;
             case "/report" -> RequestType.REPORT;
+            case "/privacy" -> RequestType.PRIVACY;
+            case "/memory" -> RequestType.MEMORY;
+            case "/export" -> RequestType.EXPORT;
+            case "/forget" -> RequestType.FORGET;
+            case "/delete_my_data" -> RequestType.DELETE_MY_DATA;
+            case "/routines" -> RequestType.ROUTINES;
+            case "/integrations" -> RequestType.INTEGRATIONS;
             case "/emergency" -> RequestType.EMERGENCY;
             case "/help" -> RequestType.HELP;
             case "/cancel" -> RequestType.CANCEL;

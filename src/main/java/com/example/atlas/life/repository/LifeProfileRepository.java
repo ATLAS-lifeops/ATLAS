@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface LifeProfileRepository extends JpaRepository<LifeProfileEntity, UUID> {
 
     Optional<LifeProfileEntity> findByTelegramUser(TelegramUserEntity telegramUser);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

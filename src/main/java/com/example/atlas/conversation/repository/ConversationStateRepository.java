@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface ConversationStateRepository extends JpaRepository<ConversationStateEntity, UUID> {
 
     Optional<ConversationStateEntity> findByTelegramUserAndStatus(TelegramUserEntity telegramUser, ConversationStatus status);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

@@ -1,6 +1,7 @@
 package com.example.atlas.telegram;
 
 import com.example.atlas.conversation.service.TelegramLifeFlowService;
+import com.example.atlas.hosted.HostedRateLimiter;
 import com.example.atlas.message.service.TelegramMessagePersistenceService;
 import com.example.atlas.orchestrator.OrchestratorService;
 import com.example.atlas.orchestrator.RequestType;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
 
 @Component
@@ -33,6 +35,7 @@ public class TelegramUpdateHandler {
     private final TelegramActionRouter actionRouter;
     private final TelegramKeyboardFactory keyboardFactory;
     private final ObjectProvider<EventPublisher> eventPublisher;
+    private final ObjectProvider<HostedRateLimiter> hostedRateLimiter;
 
     @Autowired
     public TelegramUpdateHandler(
@@ -44,7 +47,8 @@ public class TelegramUpdateHandler {
             ObjectProvider<TelegramLifeFlowService> lifeFlowService,
             TelegramActionRouter actionRouter,
             TelegramKeyboardFactory keyboardFactory,
-            ObjectProvider<EventPublisher> eventPublisher
+            ObjectProvider<EventPublisher> eventPublisher,
+            ObjectProvider<HostedRateLimiter> hostedRateLimiter
     ) {
         this.orchestratorService = orchestratorService;
         this.messageSender = messageSender;
@@ -55,6 +59,7 @@ public class TelegramUpdateHandler {
         this.actionRouter = actionRouter;
         this.keyboardFactory = keyboardFactory;
         this.eventPublisher = eventPublisher;
+        this.hostedRateLimiter = hostedRateLimiter;
     }
 
     public TelegramUpdateHandler(
@@ -76,6 +81,7 @@ public class TelegramUpdateHandler {
                 lifeFlowService,
                 actionRouter,
                 keyboardFactory,
+                null,
                 null
         );
     }
@@ -94,6 +100,7 @@ public class TelegramUpdateHandler {
         this.actionRouter = new TelegramActionRouter();
         this.keyboardFactory = new TelegramKeyboardFactory();
         this.eventPublisher = null;
+        this.hostedRateLimiter = null;
     }
 
     public boolean handleUpdate(TelegramUpdate update) {
@@ -137,6 +144,10 @@ public class TelegramUpdateHandler {
 
         RequestType requestType = orchestratorService.resolveRequestType(message.text());
         TelegramUserEntity user = upsertUser(message);
+        if (!rateLimit(message.from() == null ? null : message.from().id(), "message")) {
+            messageSender.sendText(message.chat().id(), "Too many requests. Please wait a bit and try again.");
+            return true;
+        }
         recordIncoming(user, message.chat().id(), requestType, message.text());
 
         if (requestType == RequestType.CLEAR) {
@@ -205,6 +216,11 @@ public class TelegramUpdateHandler {
         }
 
         TelegramUserEntity user = upsertUser(callbackQuery);
+        if (!rateLimit(callbackUserId(callbackQuery), "callback")) {
+            messageSender.sendText(chatId, "Too many requests. Please wait a bit and try again.");
+            answerCallback(callbackQuery.id(), "Rate limit");
+            return true;
+        }
         RoutedResponse response = routeCallback(user, callbackData);
         if (response.editPanel() && callbackQuery.message().messageId() != null) {
             boolean edited = messageSender.editPanel(chatId, callbackQuery.message().messageId(), response.content(), response.replyMarkup());
@@ -247,13 +263,20 @@ public class TelegramUpdateHandler {
                             result.requestType(),
                             result.replyMarkup() == null ? keyboardFactory.forRequest(result.requestType()) : result.replyMarkup()
                     ))
-                    .orElseGet(() -> fallbackResponse(text, requestType));
+                    .orElseGet(() -> fallbackResponse(user, text, requestType));
         }
-        return fallbackResponse(text, requestType);
+        return fallbackResponse(user, text, requestType);
     }
 
     private RoutedResponse fallbackResponse(String text, RequestType requestType) {
         return new RoutedResponse(handleTextMessage(text, requestType), requestType, keyboardFactory.forRequest(requestType));
+    }
+
+    private RoutedResponse fallbackResponse(TelegramUserEntity user, String text, RequestType requestType) {
+        if (safetyGuard.requiresSafetyResponse(text)) {
+            return new RoutedResponse(safetyGuard.safetyResponse(), requestType, keyboardFactory.forRequest(requestType));
+        }
+        return new RoutedResponse(orchestratorService.route(user, requestType, text).content(), requestType, keyboardFactory.forRequest(requestType));
     }
 
     private RoutedResponse routeCallback(TelegramUserEntity user, String callbackData) {
@@ -567,6 +590,14 @@ public class TelegramUpdateHandler {
         return language == UserLanguage.EN
                 ? "ATLAS\n\nWhat would you like to do now?"
                 : "ATLAS\n\nЧто хочешь сделать сейчас?";
+    }
+
+    private boolean rateLimit(Long telegramUserId, String operation) {
+        HostedRateLimiter limiter = hostedRateLimiter == null ? null : hostedRateLimiter.getIfAvailable();
+        if (limiter == null || telegramUserId == null) {
+            return true;
+        }
+        return limiter.allow(telegramUserId, operation, 60, Duration.ofMinutes(1));
     }
 
     private void answerCallback(String callbackQueryId, String text) {

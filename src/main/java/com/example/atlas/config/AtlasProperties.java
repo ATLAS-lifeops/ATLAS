@@ -1,15 +1,20 @@
 package com.example.atlas.config;
 
 import com.example.atlas.llm.LlmProvider;
+import com.example.atlas.deployment.DeploymentMode;
 import com.example.atlas.runtime.entity.TelegramLaunchMode;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.ConstructorBinding;
 
 @ConfigurationProperties(prefix = "atlas")
-public record AtlasProperties(Telegram telegram, Setup setup, Llm llm) {
+public record AtlasProperties(Telegram telegram, Setup setup, Llm llm, Deployment deployment, Memory memory, Routines routines) {
 
     public AtlasProperties(Telegram telegram) {
-        this(telegram, null, null);
+        this(telegram, null, null, null, null, null);
+    }
+
+    public AtlasProperties(Telegram telegram, Setup setup, Llm llm) {
+        this(telegram, setup, llm, null, null, null);
     }
 
     @ConstructorBinding
@@ -37,6 +42,15 @@ public record AtlasProperties(Telegram telegram, Setup setup, Llm llm) {
                     true,
                     true
             );
+        }
+        if (deployment == null) {
+            deployment = new Deployment(DeploymentMode.SELF_HOSTED);
+        }
+        if (memory == null) {
+            memory = new Memory(false, "/app/data/memory");
+        }
+        if (routines == null) {
+            routines = new Routines(true);
         }
     }
 
@@ -157,5 +171,24 @@ public record AtlasProperties(Telegram telegram, Setup setup, Llm llm) {
         private static String defaultString(String value) {
             return value == null ? "" : value;
         }
+    }
+
+    public record Deployment(DeploymentMode mode) {
+        public Deployment {
+            mode = mode == null ? DeploymentMode.SELF_HOSTED : mode;
+        }
+
+        public boolean hosted() {
+            return mode == DeploymentMode.HOSTED;
+        }
+    }
+
+    public record Memory(boolean snapshotsEnabled, String snapshotPath) {
+        public Memory {
+            snapshotPath = snapshotPath == null || snapshotPath.isBlank() ? "/app/data/memory" : snapshotPath;
+        }
+    }
+
+    public record Routines(boolean schedulerEnabled) {
     }
 }

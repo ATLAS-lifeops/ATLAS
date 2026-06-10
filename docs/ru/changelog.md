@@ -1,91 +1,51 @@
 # История изменений
 
-## v0.6.0
-
-### Добавлено
-- Добавлен опциональный LLM abstraction layer.
-- Добавлен OpenAI-compatible LLM client.
-- Добавлены настройки LLM через environment variables.
-- Добавлены prompt templates для плана дня, недельного отчёта и вопросов.
-- Добавлен сбор контекста из профиля, check-in, привычек и рефлексий.
-- Добавлено LLM-улучшение плана дня при включённом LLM.
-- Добавлено LLM-улучшение недельного отчёта при включённом LLM.
-- Добавлен структурированный режим ответов на вопросы в рамках ATLAS.
-- Добавлен безопасный fallback на deterministic responses.
-- Добавлена документация по LLM на русском и английском языках.
+## Unreleased
 
 ### Изменено
-- ATLAS может работать как с LLM, так и без LLM.
-- В setup/status добавлен безопасный статус LLM без отображения секретов.
+- Agent routing стал user-aware: Planner, Report и Question agents получают persisted user context.
+- Agent-proposed memory writes сохраняются через `AgentMemoryService`.
+- Команды `/privacy`, `/memory`, `/export`, `/forget DELETE` и `/delete_my_data DELETE` подключены к реальному сервисному поведению.
+- Weekly focus подключён к weekly report, отчёты архивируются после генерации.
+- Integration settings сохраняются через `IntegrationSettingsPort`.
+- Hosted rate limits и LLM quotas подключены к Telegram и LLM flows.
+- Hosted mode требует webhook secret; добавлен backup/restore checklist.
 
-### Исправлено
-- Добавлена защита от утечки LLM API key в логах, UI и документации.
-- Добавлена обработка timeout, rate limit и ошибок провайдера.
+## v0.9.0
 
-### Безопасность
-- LLM не используется для медицинских диагнозов или лечебных рекомендаций.
-- При серьёзных симптомах ATLAS использует безопасные ответы и рекомендует обратиться к специалисту.
+- Добавлены порты интеграций, settings model, Markdown export foundation и calendar preview contract.
 
-## v0.5.4
+## v0.8.2
 
-### Добавлено
-- Добавлена документация по архитектуре модульного монолита.
-- Добавлены ADR по ключевым архитектурным решениям.
-- Добавлены внутренние application events.
-- Добавлены архитектурные тесты для контроля зависимостей между слоями.
+- Добавлены deterministic trends, habit consistency и report archive foundation.
 
-### Изменено
-- Уточнены границы модулей: Telegram, identity, setup, profile, tracking, planning, reporting, safety и runtime.
-- Telegram слой оформлен как adapter, а не как доменная логика.
-- Основные сценарии перенесены ближе к application use cases.
-- README дополнен архитектурным описанием проекта.
+## v0.8.1
 
-### Архитектура
-- ATLAS остаётся модульным монолитом.
-- Микросервисы не вводятся в этом релизе.
-- Зафиксирован будущий путь выделения сервисов через bounded contexts и internal events.
+- Добавлены weekly focus model и weekly planning service.
 
-## v0.5.3
+## v0.8.0
 
-### Добавлено
-- Добавлены стандартные кнопки навигации: Назад, Меню, Отменить, Продолжить.
-- Добавлена панель продолжения незавершённого сценария.
-- Добавлены действия после завершения check-in, плана дня, привычек, вечерней рефлексии и отчёта.
-- Добавлены улучшенные empty states для отчёта, плана дня и привычек.
-- Добавлена улучшенная панель настроек и профиля.
-- Добавлено подтверждение перезапуска onboarding.
+- Добавлены routine preferences и scheduler foundation с quiet hours.
 
-### Изменено
-- Улучшена консистентность команд и кнопок.
-- Улучшена обработка устаревших и некорректных callback-кнопок.
-- Документация реорганизована в `/docs/ru` и `/docs/en`.
+## v0.7.x
 
-### Исправлено
-- Меню больше не должно случайно сбрасывать активный сценарий.
-- Секреты Telegram не отображаются в настройках и профиле.
+- Добавлены deployment modes, hosted foundation, privacy controls и hosted production hardening foundations.
 
-## v0.5.2
+## v0.6.x
 
-- Добавлен дружелюбный локальный запуск через `make start`.
-- Добавлены безопасные локальные `.env` placeholders.
-- Добавлены setup mode и preconfigured local bot mode.
-- Добавлен безопасный setup status без Telegram secrets.
+- Добавлены LLM agents, memory contract, persistent memory и memory-aware context assembly.
 
-## v0.5.1
+## v0.5.x
 
-- Добавлен Telegram UX layer с inline-кнопками, callback routing, language-first onboarding и меню.
-
-## v0.5.0
-
-- Добавлены life onboarding, check-in, habits, evening reflection и weekly report flows.
+- Добавлены life flows, Telegram UX, local launch и модульная архитектура.
 
 ## v0.4.0
 
-- Добавлены PostgreSQL persistence, runtime settings, setup page, Telegram token validation, polling и webhook modes.
+- Добавлены PostgreSQL persistence, runtime settings, setup page, polling и webhook modes.
 
 ## v0.3.x
 
-- Добавлена базовая Telegram-интеграция, webhook endpoint, безопасное логирование и backend-only структура.
+- Добавлена базовая Telegram-интеграция, webhook endpoint и безопасное логирование.
 
 ## v0.2.0
 

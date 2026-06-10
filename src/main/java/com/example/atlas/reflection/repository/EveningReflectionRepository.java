@@ -11,4 +11,8 @@ import java.util.UUID;
 public interface EveningReflectionRepository extends JpaRepository<EveningReflectionEntity, UUID> {
 
     List<EveningReflectionEntity> findByTelegramUserAndCreatedAtAfterOrderByCreatedAtDesc(TelegramUserEntity telegramUser, Instant createdAt);
+
+    long countByTelegramUser(TelegramUserEntity telegramUser);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

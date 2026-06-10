@@ -12,6 +12,13 @@ ATLAS - backend-first Telegram-система для состояния, фок�
 - [Локальный запуск](local-launch.md)
 - [Telegram UX](telegram-ux.md)
 - [LLM setup](llm.md)
+- [Память](memory.md)
+- [Режимы развертывания](deployment.md)
+- [Приватность](privacy.md)
+- [Рутины](routines.md)
+- [Недельное планирование](weekly-planning.md)
+- [Отчеты](reports.md)
+- [Интеграции](integrations.md)
 - [История изменений](changelog.md)
 
 ## Scope

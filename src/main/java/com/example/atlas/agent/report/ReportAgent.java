@@ -3,6 +3,7 @@ package com.example.atlas.agent.report;
 import com.example.atlas.agent.Agent;
 import com.example.atlas.agent.AgentContext;
 import com.example.atlas.agent.AgentResult;
+import com.example.atlas.life.service.WeeklyLifeReportService;
 import com.example.atlas.orchestrator.RequestType;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,14 +13,17 @@ import org.springframework.stereotype.Component;
 public class ReportAgent implements Agent {
 
     private final ObjectProvider<ReportSummaryService> reportSummaryService;
+    private final ObjectProvider<WeeklyLifeReportService> weeklyLifeReportService;
 
     @Autowired
-    public ReportAgent(ObjectProvider<ReportSummaryService> reportSummaryService) {
+    public ReportAgent(ObjectProvider<ReportSummaryService> reportSummaryService, ObjectProvider<WeeklyLifeReportService> weeklyLifeReportService) {
         this.reportSummaryService = reportSummaryService;
+        this.weeklyLifeReportService = weeklyLifeReportService;
     }
 
     public ReportAgent() {
         this.reportSummaryService = null;
+        this.weeklyLifeReportService = null;
     }
 
     @Override
@@ -34,6 +38,10 @@ public class ReportAgent implements Agent {
 
     @Override
     public AgentResult handle(AgentContext context) {
+        WeeklyLifeReportService weeklyService = weeklyLifeReportService == null ? null : weeklyLifeReportService.getIfAvailable();
+        if (weeklyService != null && context.user() != null) {
+            return AgentResult.reply(weeklyService.weeklyReport(context.user()), name());
+        }
         ReportSummaryService service = reportSummaryService == null ? null : reportSummaryService.getIfAvailable();
         if (service != null) {
             ReportSummaryService.ReportSummary summary = service.weeklySummary();

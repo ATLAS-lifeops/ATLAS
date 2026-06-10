@@ -16,4 +16,6 @@ public interface TelegramMessageRepository extends JpaRepository<TelegramMessage
     long countByTelegramUserAndCreatedAtAfter(TelegramUserEntity telegramUser, Instant createdAt);
 
     long countByDirectionAndCreatedAtAfter(TelegramMessageDirection direction, Instant createdAt);
+
+    void deleteByTelegramUser(TelegramUserEntity telegramUser);
 }

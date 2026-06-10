@@ -16,6 +16,9 @@ jobs:
       ATLAS_TELEGRAM_BOT_TOKEN: ""
       ATLAS_LLM_ENABLED: "false"
       ATLAS_LLM_API_KEY: ""
+      ATLAS_DEPLOYMENT_MODE: "self_hosted"
+      ATLAS_MEMORY_SNAPSHOTS_ENABLED: "false"
+      ATLAS_ROUTINE_SCHEDULER_ENABLED: "false"
 
     steps:
       - name: Check out repository
