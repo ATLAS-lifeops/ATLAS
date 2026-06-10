@@ -11,12 +11,26 @@ import com.example.atlas.memory.MemoryTag;
 import com.example.atlas.memory.MemoryType;
 import com.example.atlas.memory.MemoryWrite;
 import com.example.atlas.orchestrator.RequestType;
+import com.example.atlas.llm.LlmQuestionAnswerService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
 public class QuestionAgent implements Agent {
+
+    private final ObjectProvider<LlmQuestionAnswerService> questionAnswerService;
+
+    @Autowired
+    public QuestionAgent(ObjectProvider<LlmQuestionAnswerService> questionAnswerService) {
+        this.questionAnswerService = questionAnswerService;
+    }
+
+    public QuestionAgent() {
+        this.questionAnswerService = null;
+    }
 
     @Override
     public String name() {
@@ -31,6 +45,16 @@ public class QuestionAgent implements Agent {
     @Override
     public AgentResult handle(AgentContext context) {
         String message = context.message() == null ? "" : context.message().toLowerCase();
+        LlmQuestionAnswerService service = questionAnswerService == null ? null : questionAnswerService.getIfAvailable();
+        if (service != null && context.user() != null) {
+            return service.answer(context.user(), context.message())
+                    .map(answer -> AgentResult.reply(answer, name()))
+                    .orElseGet(() -> deterministicAnswer(context, message));
+        }
+        return deterministicAnswer(context, message);
+    }
+
+    private AgentResult deterministicAnswer(AgentContext context, String message) {
         if (outOfScope(message)) {
             return AgentResult.fallback(
                     "ATLAS отвечает только про планирование дня, привычки, check-ins, рефлексию, отчеты, состояние, фокус и ритм. Можно начать с /checkin, /day, /habits, /evening или /report.",
@@ -42,11 +66,11 @@ public class QuestionAgent implements Agent {
                 "В рамках ATLAS лучше сузить вопрос до одного шага: состояние сейчас, главный фокус, минимальная привычка или вечерний вывод. Начни с /checkin или попроси план через /day.",
                 name()
         );
-        if (context.userId() == null || message.isBlank()) {
+        if (context.internalUserId() == null || message.isBlank()) {
             return result;
         }
         MemoryWrite write = new MemoryWrite(
-                null,
+                context.internalUserId(),
                 AgentType.QUESTION,
                 MemoryType.PREFERENCE,
                 MemoryScope.AGENT_PRIVATE,
